@@ -14,7 +14,7 @@ if (user && oldHeader) {
   const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
   const roleName = user.role === "teacher" ? "Teacher" : "Student";
-  const home = user.role === "teacher" ? "teacher.html" : "student.html";
+  const home = user.role === "teacher" ? "teacher.php" : "student.php";
   const here = location.pathname.split("/").pop() || home;
   const ICON = {
     grades: '<path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5"/>',
@@ -32,8 +32,8 @@ if (user && oldHeader) {
     svg.innerHTML = ICON[name];
     return svg;
   };
-  const PAGES = [["Grades", home, "grades"], ["Attendance", "attendance.html", "attendance"], ["Announcements", "announcements.html", "announcements"],
-                 user.role === "teacher" ? ["Fees", "fees.html", "payments"] : ["Payments", "payments.html", "payments"]];
+  const PAGES = [["Grades", home, "grades"], ["Attendance", "attendance.php", "attendance"], ["Announcements", "announcements.php", "announcements"],
+                 user.role === "teacher" ? ["Fees", "fees.php", "payments"] : ["Payments", "payments.php", "payments"]];
 
   const style = h("style");
   style.textContent = `
@@ -187,7 +187,7 @@ if (user && oldHeader) {
     b.addEventListener("click", () => { close(); location.href = href; });
     menu.appendChild(b);
   };
-  goItem("My profile", "profile.html", "profile"); item("Print report card", "printBtn", "print"); item("Log out", "logoutBtn", "logout", "out");
+  goItem("My profile", "profile.php", "profile"); item("Print report card", "printBtn", "print"); item("Log out", "logoutBtn", "logout", "out");
   usr.append(btn, menu);
   inner.append(brand, h("div", "sec", "Menu"), list, today, usr);
 

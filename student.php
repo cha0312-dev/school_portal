@@ -38,8 +38,8 @@
       <div class="avatar" id="av"></div>
       <button class="ghost" id="profileBtn">Profile</button>
       <button class="ghost" id="printBtn">Report card</button>
-      <a class="navlink" href="attendance.html">Attendance</a>
-      <a class="navlink" href="announcements.html">Announcements</a>
+      <a class="navlink" href="attendance.php">Attendance</a>
+      <a class="navlink" href="announcements.php">Announcements</a>
       <button class="ghost" id="logoutBtn">Log out</button>
     </header>
 

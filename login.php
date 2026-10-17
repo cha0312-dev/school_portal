@@ -16,17 +16,17 @@
       <p class="sub">Use your portal account</p>
       <input type="email" id="email" placeholder="Email" required autocomplete="username">
       <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
-      <a href="forgot.html" class="forgot" id="forgot">Forgot your password?</a>
+      <a href="forgot.php" class="forgot" id="forgot">Forgot your password?</a>
       <button class="btn" type="submit">Sign in</button>
       <p class="msg" id="msg"></p>
-      <a href="register.html" class="swap">New here? Create an account</a>
+      <a href="register.php" class="swap">New here? Create an account</a>
     </form>
 
     <div class="overlay">
       <div class="ov">
         <h1>Hello, friend!</h1>
         <p>Create an account to see your grades or record your students' scores.</p>
-        <a class="ghost" href="register.html">Sign up</a>
+        <a class="ghost" href="register.php">Sign up</a>
       </div>
     </div>
   </div>
@@ -36,7 +36,7 @@
     document.querySelectorAll("form").forEach(f => f.addEventListener("submit", e => e.preventDefault()));
     if (location.protocol === "file:") {
       const m = document.getElementById("msg");
-      m.textContent = "Open this site at http://localhost/school-portal/login.html with XAMPP running, not by double-clicking the file.";
+      m.textContent = "Open this site at http://localhost/school-portal/login.php with XAMPP running, not by double-clicking the file.";
       m.className = "msg";
     }
   </script>
@@ -45,7 +45,7 @@
     import { post } from "./guard.js";
     const $ = id => document.getElementById(id);
     const msg = $("msg");
-    const pages = { admin: "admin.html", teacher: "teacher.html", student: "student.html" };
+    const pages = { admin: "admin.php", teacher: "teacher.php", student: "student.php" };
     const say = (text, ok = false) => { msg.textContent = text; msg.className = "msg" + (ok ? " ok" : ""); };
 
     $("inForm").addEventListener("submit", async e => {
@@ -53,7 +53,7 @@
       say("Signing in...", true);
       try {
         const { role } = await post("login", { email: $("email").value.trim(), password: $("password").value });
-        location.href = pages[role] || "login.html";
+        location.href = pages[role] || "login.php";
       } catch (err) { say(err.message); }
     });
 

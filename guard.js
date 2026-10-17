@@ -13,9 +13,9 @@ export const post = (action, data = {}) =>
 export async function protect(requiredRole, onReady) {
   try {
     const { user } = await get("me");
-    if (!user || user.role !== requiredRole) { location.href = "login.html"; return; }
+    if (!user || user.role !== requiredRole) { location.href = "login.php"; return; }
     onReady(user, user);
-  } catch (e) { location.href = "login.html"; }
+  } catch (e) { location.href = "login.php"; }
 }
 
 // "5 min ago", "2 hours ago", "3 days ago" (kept so older copies of a page that ask for it still load)
@@ -80,7 +80,7 @@ export function confirmLogout() {
 export async function logout() {
   if (!(await confirmLogout())) return;
   await post("logout").catch(() => {});
-  location.href = "login.html";
+  location.href = "login.php";
 }
 
 // Take over every Log out button on every page that loads this file.

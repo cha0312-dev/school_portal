@@ -51,8 +51,8 @@
     <header class="topbar noprint">
       <h1>Attendance</h1>
       <div class="avatar" id="av"></div>
-      <a class="navlink" id="home" href="login.html">Grades</a>
-      <a class="navlink" href="announcements.html">Announcements</a>
+      <a class="navlink" id="home" href="login.php">Grades</a>
+      <a class="navlink" href="announcements.php">Announcements</a>
       <button class="ghost" id="logoutBtn">Log out</button>
     </header>
 
@@ -191,9 +191,9 @@
 
     let user;
     try { ({ user } = await get("me")); } catch (e) {}
-    if (!user || !["teacher", "student"].includes(user.role)) { location.href = "login.html"; throw new Error("not signed in"); }
+    if (!user || !["teacher", "student"].includes(user.role)) { location.href = "login.php"; throw new Error("not signed in"); }
     $("av").textContent = initials(user.name);
-    $("home").href = user.role === "teacher" ? "teacher.html" : "student.html";
+    $("home").href = user.role === "teacher" ? "teacher.php" : "student.php";
 
     // ================= Teacher =================
     async function teacherView() {

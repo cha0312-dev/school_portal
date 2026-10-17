@@ -67,7 +67,7 @@
       if (!ok) return;
       return fetch("api.php?action=logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
         .catch(function () {})
-        .then(function () { location.href = "login.html"; });
+        .then(function () { location.href = "login.php"; });
     }).then(function () { asking = false; }, function () { asking = false; });
   }, true);
 

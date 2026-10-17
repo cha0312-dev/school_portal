@@ -1,0 +1,2 @@
+# Old .html addresses (bookmarks, cached scripts) go to the new .php pages.
+RedirectMatch 302 ^(.*)\.html$ $1.php

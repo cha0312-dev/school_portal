@@ -67,8 +67,8 @@
     <header class="topbar noprint">
       <h1>Announcements</h1>
       <div class="avatar" id="av"></div>
-      <a class="navlink" id="home" href="login.html">Grades</a>
-      <a class="navlink" href="attendance.html">Attendance</a>
+      <a class="navlink" id="home" href="login.php">Grades</a>
+      <a class="navlink" href="attendance.php">Attendance</a>
       <button class="ghost" id="logoutBtn">Log out</button>
     </header>
 
@@ -157,10 +157,10 @@
 
     let user;
     try { ({ user } = await get("me")); } catch (e) {}
-    if (!user || !["teacher", "student"].includes(user.role)) { location.href = "login.html"; throw new Error("not signed in"); }
+    if (!user || !["teacher", "student"].includes(user.role)) { location.href = "login.php"; throw new Error("not signed in"); }
     const isTeacher = user.role === "teacher";
     $("av").textContent = initials(user.name);
-    $("home").href = isTeacher ? "teacher.html" : "student.html";
+    $("home").href = isTeacher ? "teacher.php" : "student.php";
     $("lead").textContent = isTeacher ? "Messages you have sent to your classes." : "Messages from your teachers.";
 
     let ITEMS = [], SEEN = null;

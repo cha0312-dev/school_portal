@@ -65,8 +65,8 @@
     <header class="topbar noprint">
       <h1>School fees</h1>
       <div class="avatar" id="av"></div>
-      <a class="navlink" href="teacher.html">Grades</a>
-      <a class="navlink" href="attendance.html">Attendance</a>
+      <a class="navlink" href="teacher.php">Grades</a>
+      <a class="navlink" href="attendance.php">Attendance</a>
       <button class="ghost" id="logoutBtn">Log out</button>
     </header>
 

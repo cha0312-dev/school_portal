@@ -565,7 +565,7 @@ switch ($_GET['action'] ?? '') {
         $base = SITE_URL !== '' ? rtrim(SITE_URL, '/')
           : (is_local() ? ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') : '');
         if ($base !== '') {
-          $link = $base . '/forgot.html?token=' . $token;
+          $link = $base . '/forgot.php?token=' . $token;
           $body = "Hello {$u['name']},\r\n\r\nWe received a request to reset your School Portal password.\r\nOpen this link within 30 minutes to choose a new password:\r\n\r\n$link\r\n\r\nIf you did not ask for this, you can ignore this message. Your password will not change.\r\n";
           @mail($email, 'Reset your School Portal password', $body, 'From: ' . MAIL_FROM . "\r\nContent-Type: text/plain; charset=UTF-8");
         }

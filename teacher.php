@@ -25,8 +25,8 @@
     <header class="topbar">
       <h1 id="welcome">Loading...</h1>
       <div class="avatar" id="av"></div>
-      <a class="navlink" href="attendance.html">Attendance</a>
-      <a class="navlink" href="announcements.html">Announcements</a>
+      <a class="navlink" href="attendance.php">Attendance</a>
+      <a class="navlink" href="announcements.php">Announcements</a>
       <button class="ghost" id="logoutBtn">Log out</button>
     </header>
 

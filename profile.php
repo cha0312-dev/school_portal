@@ -49,7 +49,7 @@
     <header class="topbar noprint">
       <h1>My profile</h1>
       <div class="avatar" id="av"></div>
-      <a class="navlink" id="home" href="login.html">Grades</a>
+      <a class="navlink" id="home" href="login.php">Grades</a>
       <button class="ghost" id="logoutBtn">Log out</button>
     </header>
 
@@ -139,10 +139,10 @@
 
     let user;
     try { ({ user } = await get("me")); } catch (e) {}
-    if (!user || !["teacher", "student"].includes(user.role)) { location.href = "login.html"; throw new Error("not signed in"); }
+    if (!user || !["teacher", "student"].includes(user.role)) { location.href = "login.php"; throw new Error("not signed in"); }
     const isStudent = user.role === "student";
     $("av").textContent = initials(user.name);
-    $("home").href = isStudent ? "student.html" : "teacher.html";
+    $("home").href = isStudent ? "student.php" : "teacher.php";
     $("studentOnly").hidden = !isStudent; $("teacherOnly").hidden = isStudent;
     $("pBirth").max = new Date().toLocaleDateString("en-CA");
 

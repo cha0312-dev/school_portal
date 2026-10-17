@@ -25,7 +25,7 @@
       <div class="ov">
         <h1>Welcome back!</h1>
         <p>Already registered? Sign in with your email to continue.</p>
-        <a class="ghost" href="login.html">Sign in</a>
+        <a class="ghost" href="login.php">Sign in</a>
       </div>
     </div>
 
@@ -50,7 +50,7 @@
       <label class="showpw"><input type="checkbox" id="showPw"> Show passwords</label>
       <button class="btn" type="submit">Sign up</button>
       <p class="msg" id="msg"></p>
-      <a href="login.html" class="swap">Already registered? Sign in</a>
+      <a href="login.php" class="swap">Already registered? Sign in</a>
     </form>
   </div>
 
@@ -59,7 +59,7 @@
     document.querySelectorAll("form").forEach(f => f.addEventListener("submit", e => e.preventDefault()));
     if (location.protocol === "file:") {
       const m = document.getElementById("msg");
-      m.textContent = "Open this site at http://localhost/school-portal/login.html with XAMPP running, not by double-clicking the file.";
+      m.textContent = "Open this site at http://localhost/school-portal/login.php with XAMPP running, not by double-clicking the file.";
       m.className = "msg";
     }
   </script>
@@ -99,7 +99,7 @@
           name: $("name").value.trim(), email: $("email").value.trim(), password, role,
           school_id: schoolId, grade_level: role === "student" ? $("grade").value.trim() : "", phone
         });
-        if (role === "student") { location.href = "student.html"; return; }
+        if (role === "student") { location.href = "student.php"; return; }
         say("Account created. The administrator must approve it before you can sign in.", true);
       } catch (err) { say(err.message); }
     });

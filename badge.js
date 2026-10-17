@@ -30,9 +30,9 @@ function mark(page, n, noun) {
 async function refresh() {
   const count = a => get(a).then(r => r.count).catch(() => 0);
   const [ann, att] = await Promise.all([count("ann_unread"), count("att_unread")]);
-  mark("announcements.html", ann, "announcement");
-  mark("attendance.html", att, "attendance update");
-  const total = (here === "announcements.html" ? 0 : ann) + (here === "attendance.html" ? 0 : att);
+  mark("announcements.php", ann, "announcement");
+  mark("attendance.php", att, "attendance update");
+  const total = (here === "announcements.php" ? 0 : ann) + (here === "attendance.php" ? 0 : att);
   document.title = total > 0 ? `(${total}) ${baseTitle}` : baseTitle;
 }
 

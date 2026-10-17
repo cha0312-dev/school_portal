@@ -54,7 +54,7 @@
           <button class="btn" type="submit" id="reqBtn">Send reset link</button>
           <p class="msg" id="msgReq" role="status"></p>
         </form>
-        <a class="back" href="login.html">&larr; Back to sign in</a>
+        <a class="back" href="login.php">&larr; Back to sign in</a>
       </div>
 
       <div class="view" id="vSent" hidden>
@@ -89,15 +89,15 @@
         <div class="ic ok" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div>
         <h1>Password changed</h1>
         <p class="sub">You can now sign in with your new password.</p>
-        <a class="btn" href="login.html">Go to sign in</a>
+        <a class="btn" href="login.php">Go to sign in</a>
       </div>
 
       <div class="view" id="vBad" hidden>
         <div class="ic warn" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></div>
         <h1>This link has expired</h1>
         <p class="sub">Reset links work once and only for 30 minutes. Please ask for a new one.</p>
-        <a class="btn" href="forgot.html">Get a new link</a>
-        <br><a class="back" href="login.html">&larr; Back to sign in</a>
+        <a class="btn" href="forgot.php">Get a new link</a>
+        <br><a class="back" href="login.php">&larr; Back to sign in</a>
       </div>
     </div>
 
@@ -119,7 +119,7 @@
   <script>
     // Plain script so a clear message still shows if the page is opened the wrong way
     document.querySelectorAll("form").forEach(f => f.addEventListener("submit", e => e.preventDefault()));
-    if (location.protocol === "file:") document.body.insertAdjacentHTML("afterbegin", '<p style="padding:12px;text-align:center;color:#b3261e">Open this site at http://localhost/school-portal/forgot.html with XAMPP running, not by double-clicking the file.</p>');
+    if (location.protocol === "file:") document.body.insertAdjacentHTML("afterbegin", '<p style="padding:12px;text-align:center;color:#b3261e">Open this site at http://localhost/school-portal/forgot.php with XAMPP running, not by double-clicking the file.</p>');
   </script>
   <script type="module">
     import { get, post } from "./guard.js";
@@ -174,7 +174,7 @@
       if ($("pw1").value.length < 6) return say("msgReset", "The new password needs at least 6 characters.");
       if ($("pw1").value !== $("pw2").value) return say("msgReset", "The two passwords do not match.");
       const btn = $("resetBtn"); btn.disabled = true; say("msgReset", "Saving...", true);
-      try { await post("reset_apply", { token, password: $("pw1").value }); history.replaceState(null, "", "forgot.html"); view("vDone"); }
+      try { await post("reset_apply", { token, password: $("pw1").value }); history.replaceState(null, "", "forgot.php"); view("vDone"); }
       catch (err) { say("msgReset", friendly(err)); }
       btn.disabled = false;
     });

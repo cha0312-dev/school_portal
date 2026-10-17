@@ -18,14 +18,14 @@
   document.head.appendChild(style);
 
   document.addEventListener("click", function (e) {
-    var a = e.target.closest && e.target.closest('a[href="register.html"], a[href="login.html"]');
+    var a = e.target.closest && e.target.closest('a[href="register.php"], a[href="login.php"]');
     if (!a || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
     if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;   // just go there
 
     e.preventDefault();
     var overlay = box.querySelector(".overlay");
     var wide = overlay && getComputedStyle(overlay).display !== "none";          // phones hide the side panel
-    var onRegister = /register\.html$/i.test(location.pathname);
+    var onRegister = /register\.php$/i.test(location.pathname);
     box.style.setProperty("--ox", wide ? (onRegister ? "100%" : "-100%") : "0");
     box.style.setProperty("--fx", wide ? (onRegister ? "-100%" : "100%") : "0");
     box.classList.add("leaving");
