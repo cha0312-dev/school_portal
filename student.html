@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Grades</title>
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    /* Which quarters has the teacher submitted? */
+    .qstrip { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:14px; margin-bottom:10px; }
+    .qpill { padding:14px 18px; border-left:6px solid var(--line); border-radius:16px; background:var(--bg);
+             box-shadow:6px 6px 14px var(--lo), -6px -6px 14px var(--hi); }
+    .qpill b { display:block; font-size:1.05rem; }
+    .qpill span { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:.95rem; color:var(--muted); }
+    .qpill .ic { display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; font-size:.85rem; font-style:normal;
+                 font-weight:700; color:var(--ink); background:var(--line); }
+    .qpill.done { border-left-color:var(--good); }
+    .qpill.done span { color:var(--good); font-weight:700; }
+    .qpill.done .ic { color:#fff; background:var(--good); }
+    .qpill.part { border-left-color:#e0b12a; }
+    .qpill.part span { color:var(--ink); font-weight:700; }
+    .qpill.part .ic { color:#2a0a10; background:#e0b12a; }
+    #qlegend { margin:0 0 24px; }
+    .row { grid-template-columns:50px 1fr 62px; }
+    .ql { display:flex; align-items:center; gap:5px; }
+    .tick { display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; font-size:.65rem; font-style:normal;
+            font-weight:700; color:#fff; background:var(--good); }
+    .pend { font-size:.9rem; font-style:italic; color:var(--muted); }
+    /* Pop-up windows: a plain shadow, no bright glow around them */
+    dialog { box-shadow: 0 24px 60px rgba(40, 10, 16, .45), 0 2px 8px rgba(40, 10, 16, .25); }
+  </style>
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <h1 id="hello">Loading...</h1>
+      <div class="avatar" id="av"></div>
+      <button class="ghost" id="profileBtn">Profile</button>
+      <button class="ghost" id="printBtn">Report card</button>
+      <a class="navlink" href="attendance.html">Attendance</a>
+      <a class="navlink" href="announcements.html">Announcements</a>
+      <button class="ghost" id="logoutBtn">Log out</button>
+    </header>
+
+    <section class="qstrip" id="qstrip" hidden></section>
+    <p class="note" id="qlegend" hidden>A &#10003; next to a quarter means your teacher has submitted it.</p>
+
+    <section class="stats" id="stats"></section>
+    <section class="cards" id="cards"><div class="skel"></div><div class="skel"></div><div class="skel"></div></section>
+
+    <div id="report">
+      <h2 id="rTitle"></h2>
+      <table>
+        <thead><tr><th>Subject</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Final</th></tr></thead>
+        <tbody id="rBody"></tbody>
+      </table>
+      <p class="note" id="rDate"></p>
+    </div>
+  </div>
+
+  <dialog id="dlgSubj">
+    <h2 id="sTitle"></h2>
+    <div class="tools"><select id="sQuarter" aria-label="Quarter"></select></div>
+    <svg id="trend" viewBox="0 0 260 90" role="img" aria-label="Grade trend by quarter"></svg>
+    <table>
+      <thead><tr><th>Category</th><th>Score / Total</th><th>Weight</th><th>Points</th></tr></thead>
+      <tbody id="bd"></tbody>
+    </table>
+    <p class="note">Change a number to see a what-if result. Your real grades do not change.</p>
+    <div class="avg">Quarter grade: <span id="sResult" class="big">-</span> <small class="note" id="sReal"></small></div>
+    <div class="actions"><button type="button" class="ghost" id="sReset">Reset</button><button type="button" data-close>Close</button></div>
+  </dialog>
+
+  <dialog id="dlgProfile">
+    <h2>My profile</h2>
+    <p class="note" id="pInfo"></p>
+    <form id="formPw">
+      <input class="field" type="password" id="pCur" placeholder="Current password" required autocomplete="current-password">
+      <input class="field" type="password" id="pNew" placeholder="New password (6+ characters)" required autocomplete="new-password">
+      <input class="field" type="password" id="pNew2" placeholder="Confirm new password" required autocomplete="new-password">
+      <div class="actions"><button type="button" class="ghost" data-close>Close</button><button type="submit">Change password</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module">
+    import { protect, logout, get, post } from "./guard.js";
+
+    const PASSING = 75;   // change to your school's passing grade
+    const LABEL = { quizzes: "Quizzes", activities: "Activities", exam: "Exam" };
+    const $ = id => document.getElementById(id);
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+    const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+    let WEIGHTS = {}, CATS = [], DATA = {}, toastTimer;
+
+    function toast(text, bad = false) {
+      const t = $("toast");
+      t.textContent = text; t.className = "toast show" + (bad ? " bad" : "");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", 3200);
+    }
+    document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => b.closest("dialog").close()));
+
+    // ---- Subject details, what-if calculator and trend ----
+    function drawTrend(q) {
+      const svg = $("trend"), NS = "http://www.w3.org/2000/svg";
+      svg.innerHTML = "";
+      const x = n => 30 + (n - 1) * 66;
+      const y = g => 66 - ((Math.max(50, Math.min(100, g)) - 50) / 50) * 54;
+      const add = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text) e.textContent = text; svg.appendChild(e); return e; };
+      add("line", { x1: 20, x2: 240, y1: y(PASSING), y2: y(PASSING), stroke: "currentColor", "stroke-dasharray": "4 4", opacity: .4 });
+      add("text", { x: 242, y: y(PASSING) + 3 }, PASSING);
+      const pts = [1, 2, 3, 4].filter(n => q[n]);
+      if (pts.length > 1) add("polyline", { points: pts.map(n => x(n) + "," + y(q[n].grade)).join(" "), fill: "none", stroke: "var(--brand)", "stroke-width": 2.5 });
+      pts.forEach(n => {
+        add("circle", { cx: x(n), cy: y(q[n].grade), r: 4.5, fill: "var(--brand)" });
+        add("text", { x: x(n) - 12, y: y(q[n].grade) - 9 }, q[n].grade.toFixed(1));
+      });
+      [1, 2, 3, 4].forEach(n => add("text", { x: x(n) - 6, y: 84 }, "Q" + n));
+    }
+
+    function recalc() {
+      let total = 0, ok = true;
+      $("bd").querySelectorAll("tr").forEach(tr => {
+        const [a, b] = tr.querySelectorAll("input"), e = parseFloat(a.value), m = parseFloat(b.value);
+        const pts = Number.isFinite(e) && Number.isFinite(m) && m > 0 ? (e / m) * WEIGHTS[tr.dataset.cat] : null;
+        tr.querySelector(".pts").textContent = pts === null ? "-" : pts.toFixed(2);
+        if (pts === null) ok = false; else total += pts;
+      });
+      const r = $("sResult");
+      r.textContent = ok ? total.toFixed(2) : "-";
+      r.className = "big " + (ok ? (total >= PASSING ? "pass" : "fail") : "");
+    }
+
+    function renderBreakdown(name) {
+      const rec = DATA[name][$("sQuarter").value], body = $("bd");
+      body.innerHTML = "";
+      CATS.forEach(c => {
+        const d = rec.details && rec.details[c], tr = el("tr"), td = el("td");
+        tr.dataset.cat = c;
+        const a = el("input"), b = el("input");
+        a.type = b.type = "number"; a.min = 0; b.min = 1; a.step = b.step = "any";
+        a.value = d ? d[0] : ""; b.value = d ? d[1] : "";
+        a.setAttribute("aria-label", (LABEL[c] || c) + " score"); b.setAttribute("aria-label", (LABEL[c] || c) + " total");
+        td.append(a, " / ", b);
+        tr.append(el("td", null, LABEL[c] || c), td, el("td", null, WEIGHTS[c] + "%"), el("td", "pts"));
+        tr.addEventListener("input", recalc);
+        body.appendChild(tr);
+      });
+      $("sReal").textContent = "(recorded: " + rec.grade.toFixed(2) + ")";
+      recalc();
+    }
+
+    function openSubject(name) {
+      const q = DATA[name], quarters = Object.keys(q).map(Number).sort();
+      $("sTitle").textContent = name;
+      const sel = $("sQuarter"); sel.innerHTML = "";
+      quarters.forEach(n => sel.add(new Option("Quarter " + n, n)));
+      sel.value = quarters[quarters.length - 1];
+      sel.onchange = () => renderBreakdown(name);
+      $("sReset").onclick = () => renderBreakdown(name);
+      renderBreakdown(name); drawTrend(q);
+      $("dlgSubj").showModal();
+    }
+
+    // ---- Profile and password ----
+    $("profileBtn").addEventListener("click", async () => {
+      try { const { profile } = await get("profile"); $("pInfo").textContent = [profile.name, profile.email, profile.school_id, profile.grade_level].filter(Boolean).join(" - "); }
+      catch (err) { $("pInfo").textContent = ""; }
+      $("formPw").reset(); $("dlgProfile").showModal();
+    });
+    $("formPw").addEventListener("submit", async e => {
+      e.preventDefault();
+      if ($("pNew").value !== $("pNew2").value) return toast("The new passwords do not match.", true);
+      try {
+        await post("change_password", { current: $("pCur").value, new: $("pNew").value });
+        $("dlgProfile").close(); toast("Password changed.");
+      } catch (err) { toast(err.message, true); }
+    });
+
+    $("printBtn").addEventListener("click", () => window.print());
+    $("logoutBtn").addEventListener("click", logout);
+
+    // ---- Load grades ----
+    protect("student", async (user, me) => {
+      $("hello").textContent = "Hello, " + me.name.split(" ")[0];
+      $("av").textContent = initials(me.name);
+      $("rTitle").textContent = "Report card: " + me.name;
+      $("rDate").textContent = "Printed " + new Date().toLocaleDateString();
+
+      const cards = $("cards");
+      let status = null;
+      try {
+        const [cfg, { rows }, st] = await Promise.all([get("config"), get("mygrades"), get("my_status").catch(() => null)]);
+        WEIGHTS = cfg.weights; CATS = Object.keys(WEIGHTS); status = st;
+        rows.forEach(r => { (DATA[r.subject] ||= {})[Number(r.quarter)] = { grade: Number(r.quarter_grade), details: r.details }; });
+      } catch (err) { cards.innerHTML = ""; cards.appendChild(el("p", "empty", err.message)); return; }
+
+      // Which quarters did the teacher submit? Per class when the server can tell us,
+      // otherwise any quarter that has a visible grade counts as submitted.
+      const classes = status ? status.classes
+        : Object.keys(DATA).map(s => ({ subject: s, class_name: s, quarters: Object.keys(DATA[s]).map(Number) }));
+      const submittedBy = {};
+      classes.forEach(c => { const set = (submittedBy[c.subject] ||= new Set()); c.quarters.forEach(n => set.add(n)); });
+
+      cards.innerHTML = "";
+      const subjects = [...new Set([...Object.keys(DATA), ...classes.map(c => c.subject)])].sort();
+      if (!subjects.length) {
+        cards.appendChild(el("p", "empty", "No grades yet. Once your teacher adds you to a class and submits a quarter, it appears here."));
+        return;
+      }
+
+      // One box per quarter: Submitted / some submitted / not yet
+      if (classes.length) {
+        $("qstrip").hidden = false; $("qlegend").hidden = false;
+        [1, 2, 3, 4].forEach(n => {
+          const done = classes.filter(c => c.quarters.includes(n)).length, total = classes.length;
+          const state = done === total ? "done" : done > 0 ? "part" : "wait";
+          const text = state === "done" ? "Submitted" : state === "part" ? `${done} of ${total} submitted` : "Not yet submitted";
+          const pill = el("div", "qpill " + state), line = el("span");
+          line.append(el("i", "ic", state === "done" ? "\u2713" : state === "part" ? "\u2022" : "\u2013"), document.createTextNode(text));
+          pill.append(el("b", null, "Quarter " + n), line);
+          $("qstrip").appendChild(pill);
+        });
+      }
+
+      const avgs = [];
+      subjects.forEach(name => {
+        const q = DATA[name] || {}, got = [1, 2, 3, 4].filter(n => q[n]);
+        const sent = submittedBy[name] || new Set();
+        const nSent = [1, 2, 3, 4].filter(n => sent.has(n)).length;
+        const avg = got.length ? mean(got.map(n => q[n].grade)) : null;
+        if (avg !== null) avgs.push(avg);
+
+        let sub = nSent === 4 ? "All 4 quarters submitted" : nSent + " of 4 quarters submitted";
+        if (got.length > 1) {
+          const diff = q[got[got.length - 1]].grade - q[got[got.length - 2]].grade;
+          sub += "  " + (diff >= 0 ? "\u25B2 " : "\u25BC ") + Math.abs(diff).toFixed(1);
+        }
+        const card = el("article", "subj");
+        const head = el("div", "subj-head"), left = el("div");
+        left.append(el("h2", null, name), el("small", null, sub));
+        head.append(left, el("div", "big " + (avg === null ? "" : avg >= PASSING ? "pass" : "fail"), avg === null ? "-" : avg.toFixed(2)));
+        card.appendChild(head);
+
+        [1, 2, 3, 4].forEach(n => {
+          const g = q[n] ? q[n].grade : null, isSent = sent.has(n), row = el("div", "row");
+          const ql = el("span", "ql", "Q" + n);
+          if (isSent) { const t = el("i", "tick", "\u2713"); t.title = "Submitted by your teacher"; t.setAttribute("aria-label", "Submitted"); ql.appendChild(t); }
+          let mid;
+          if (g !== null) {
+            const track = el("div", "track"), fill = el("div", "fill" + (g < PASSING ? " fail" : ""));
+            fill.style.width = "0%"; track.appendChild(fill); mid = track;
+            requestAnimationFrame(() => requestAnimationFrame(() => fill.style.width = Math.max(0, Math.min(100, g)) + "%"));
+          } else {
+            mid = el("span", "pend", isSent ? "Submitted, no grade recorded" : "Not yet submitted");
+          }
+          row.append(ql, mid, el("span", null, g === null ? "-" : g.toFixed(2)));
+          card.appendChild(row);
+        });
+
+        if (avg !== null) {
+          if (avg < PASSING) card.appendChild(el("span", "flag", "Below the passing grade"));
+          else if (avg < PASSING + 5) card.appendChild(el("span", "flag", "Close to the passing grade"));
+          card.tabIndex = 0; card.setAttribute("role", "button"); card.setAttribute("aria-label", name + ": view details");
+          card.addEventListener("click", () => openSubject(name));
+          card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSubject(name); } });
+        } else { card.style.cursor = "default"; }
+        cards.appendChild(card);
+
+        // printable report row
+        const tr = el("tr"); tr.append(el("td", null, name));
+        [1, 2, 3, 4].forEach(n => tr.append(el("td", null, q[n] ? q[n].grade.toFixed(2) : (sent.has(n) ? "-" : "Pending"))));
+        tr.append(el("td", null, got.length === 4 ? avg.toFixed(2) : "-"));
+        $("rBody").appendChild(tr);
+      });
+
+      const stat = (label, value) => { const s = el("div", "stat"); s.append(el("span", null, label), el("b", null, value)); return s; };
+      $("stats").append(
+        stat("General average", avgs.length ? mean(avgs).toFixed(2) : "-"),
+        stat("Subjects", String(subjects.length)),
+        stat("Passing", avgs.length ? avgs.filter(a => a >= PASSING).length + " of " + avgs.length : "-")
+      );
+    });
+  </script>
+  <script type="module" src="badge.js"></script>
+  <script src="logout-confirm.js"></script>
+  <script type="module" src="nav.js"></script>
+</body>
+</html>

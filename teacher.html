@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teacher - Class Record</title>
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    #dlgClass { width: min(460px, 94vw); }
+    /* Pop-up windows: a plain shadow, no bright glow around them */
+    dialog { box-shadow: 0 24px 60px rgba(40, 10, 16, .45), 0 2px 8px rgba(40, 10, 16, .25); }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .lab { display: block; margin: 0 0 6px; font-size: .92rem; font-weight: 700; color: var(--muted); }
+    .subjgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; margin-bottom: 10px; }
+    .subjgrid label { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+    .subjgrid input { width: 20px; height: 20px; margin: 0; accent-color: var(--brand); }
+    button.linkbtn { margin-left: 10px; padding: 0; font-size: .9rem; font-weight: 700; color: var(--brand); background: none; box-shadow: none; text-decoration: underline; }
+    #cPreview { min-height: 24px; margin: 4px 0 14px; }
+    @media (max-width: 480px) { .pair, .subjgrid { grid-template-columns: 1fr; } }
+  </style>
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <h1 id="welcome">Loading...</h1>
+      <div class="avatar" id="av"></div>
+      <a class="navlink" href="attendance.html">Attendance</a>
+      <a class="navlink" href="announcements.html">Announcements</a>
+      <button class="ghost" id="logoutBtn">Log out</button>
+    </header>
+
+    <section class="stats">
+      <div class="stat"><span>Class average</span><b id="sAvg">-</b></div>
+      <div class="stat"><span>Highest</span><b id="sHigh">-</b></div>
+      <div class="stat"><span>Lowest</span><b id="sLow">-</b></div>
+      <div class="stat"><span>Passing</span><b id="sPass">-</b></div>
+    </section>
+
+    <section class="panel">
+      <div class="tools">
+        <select id="class" aria-label="Class"></select>
+        <select id="quarter" aria-label="Quarter">
+          <option value="1">Quarter 1</option><option value="2">Quarter 2</option>
+          <option value="3">Quarter 3</option><option value="4">Quarter 4</option>
+        </select>
+        <button class="ghost" id="newClass">New class</button>
+        <button class="ghost" id="manage">Students</button>
+        <input type="search" id="search" placeholder="Search student" aria-label="Search student">
+      </div>
+      <div class="tools">
+        <span id="count"></span>
+        <button class="ghost" id="export">Export CSV</button>
+        <button id="save">Save grades</button>
+        <button class="ghost" id="lock">Submit and lock</button>
+      </div>
+      <p class="banner" id="banner" hidden>This quarter has been submitted and is locked. Grades can no longer be changed.</p>
+      <div class="chips" id="chips"></div>
+      <table class="stack">
+        <thead id="head"></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <dialog id="dlgClass">
+    <h2>New class</h2>
+    <form id="formClass">
+      <div class="pair">
+        <label class="lab">Grade level<select class="field" id="cGrade"></select></label>
+        <label class="lab">Section<select class="field" id="cSection"></select></label>
+      </div>
+      <input class="field" id="cSectionOther" placeholder="Type the section name, e.g. STEM" maxlength="40" hidden>
+      <p class="lab">Subjects you teach <button type="button" class="linkbtn" id="cAll">Select all</button></p>
+      <div class="subjgrid" id="cSubjects"></div>
+      <p class="note" id="cPreview"></p>
+      <div class="actions"><button type="button" class="ghost" data-close>Cancel</button><button type="submit">Create</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgRoster">
+    <h2>Students in this class</h2>
+    <p class="note" id="rosterNote" hidden></p>
+    <div class="checks" id="checks"></div>
+    <div class="actions"><button type="button" class="ghost" data-close>Cancel</button><button type="button" id="rosterSave">Save</button></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module">
+    import { protect, logout, get, post } from "./guard.js";
+
+    const LABEL = { quizzes: "Quizzes", activities: "Activities", exam: "Exam" };
+    const PASSING = 75;                 // change to your school's passing grade (display only)
+
+    const $ = id => document.getElementById(id);
+    const tbody = $("rows"), classSel = $("class"), quarterSel = $("quarter");
+    let WEIGHTS = {}, CATS = [], CLASSES = [], toastTimer;
+
+    const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+    const current = () => CLASSES.find(c => String(c.id) === classSel.value);
+    const studentRows = () => [...tbody.querySelectorAll("tr[data-uid]")];
+    function toast(text, bad = false) {
+      const t = $("toast");
+      t.textContent = text; t.className = "toast show" + (bad ? " bad" : "");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", 3200);
+    }
+
+    // Live preview only; the server recomputes the real grade when you save
+    function computeGrade(s) {
+      let total = 0;
+      for (const c of CATS) {
+        const [earned, max] = s[c];
+        if (!Number.isFinite(earned) || !Number.isFinite(max) || max <= 0) return null;
+        total += (earned / max) * WEIGHTS[c];
+      }
+      return Math.round(total * 100) / 100;
+    }
+    function readRow(tr) {
+      const s = {};
+      for (const c of CATS) { const i = tr.querySelectorAll(`input[data-cat="${c}"]`); s[c] = [parseFloat(i[0].value), parseFloat(i[1].value)]; }
+      return s;
+    }
+
+    function stats() {
+      const g = studentRows().map(tr => computeGrade(readRow(tr))).filter(x => x !== null);
+      const has = g.length > 0;
+      $("sAvg").textContent = has ? (g.reduce((a, b) => a + b, 0) / g.length).toFixed(2) : "-";
+      $("sHigh").textContent = has ? Math.max(...g).toFixed(2) : "-";
+      $("sLow").textContent = has ? Math.min(...g).toFixed(2) : "-";
+      $("sPass").textContent = has ? g.filter(x => x >= PASSING).length + " of " + g.length : "-";
+      $("count").textContent = g.length + " of " + studentRows().length + " students graded";
+    }
+    function update(tr) {
+      const g = computeGrade(readRow(tr)), pill = tr.querySelector(".pill");
+      pill.textContent = g === null ? "-" : g.toFixed(2);
+      pill.className = "pill" + (g === null ? "" : g >= PASSING ? " pass" : " fail");
+      stats();
+    }
+
+    function renderRows(students, message) {
+      tbody.innerHTML = "";
+      if (!students.length) {
+        tbody.innerHTML = `<tr><td colspan="${CATS.length + 2}" class="empty"></td></tr>`;
+        tbody.querySelector(".empty").textContent = message;
+        stats(); return;
+      }
+      students.forEach(st => {
+        const tr = document.createElement("tr");
+        tr.dataset.uid = st.id;
+        const first = document.createElement("td"), who = document.createElement("div");
+        who.className = "who";
+        const av = document.createElement("div"); av.className = "avatar"; av.textContent = initials(st.name);
+        const nm = document.createElement("span"); nm.textContent = st.name;
+        who.append(av, nm); first.appendChild(who); tr.appendChild(first);
+        CATS.forEach(c => {
+          const td = document.createElement("td");
+          td.dataset.label = LABEL[c] || c;
+          td.innerHTML = `<input type="number" min="0" step="any" data-cat="${c}" aria-label="${LABEL[c] || c} score"> / <input type="number" min="1" step="any" data-cat="${c}" aria-label="${LABEL[c] || c} total">`;
+          const i = td.querySelectorAll("input"), d = st.details && st.details[c];
+          i[0].value = d ? d[0] : ""; i[1].value = d ? d[1] : "";
+          tr.appendChild(td);
+        });
+        const g = document.createElement("td"), pill = document.createElement("span");
+        g.dataset.label = "Quarter grade"; pill.className = "pill"; pill.textContent = "-"; g.appendChild(pill); tr.appendChild(g);
+        tr.addEventListener("input", () => update(tr));
+        tbody.appendChild(tr);
+        update(tr);
+      });
+    }
+
+    function applyLock(locked) {
+      $("banner").hidden = !locked;
+      tbody.classList.toggle("locked", locked);
+      tbody.querySelectorAll("input").forEach(i => i.disabled = locked);
+      $("save").hidden = locked; $("lock").hidden = locked;
+    }
+
+    async function loadClass() {
+      $("search").value = "";
+      const c = current();
+      if (!c) { renderRows([], "Create your first class to begin, then add students to it."); applyLock(false); return; }
+      try {
+        const { students, locked } = await get("class_scores", { class_id: c.id, quarter: quarterSel.value });
+        renderRows(students, "No students in this class yet. Click Students to add them.");
+        applyLock(locked);
+      } catch (err) { toast(err.message, true); }
+    }
+
+    async function refreshClasses(selectId) {
+      const { classes } = await get("classes");
+      CLASSES = classes;
+      classSel.innerHTML = "";
+      classes.forEach(c => classSel.add(new Option(`${c.name} - ${c.subject}`, c.id)));
+      if (selectId) classSel.value = selectId;
+      await loadClass();
+    }
+
+    async function saveGrades() {
+      const rows = studentRows().map(tr => ({ student_id: Number(tr.dataset.uid), scores: readRow(tr) }))
+                                .filter(r => computeGrade(r.scores) !== null);
+      if (!rows.length) throw new Error("Fill in a student's scores and totals first.");
+      const { saved } = await post("save", { class_id: current().id, quarter: Number(quarterSel.value), rows });
+      return saved;
+    }
+
+    $("save").addEventListener("click", async () => {
+      const btn = $("save"); btn.disabled = true; btn.textContent = "Saving...";
+      try { const n = await saveGrades(); toast(`Saved ${n} student${n > 1 ? "s" : ""}.`); }
+      catch (err) { toast(err.message, true); }
+      btn.disabled = false; btn.textContent = "Save grades";
+    });
+
+    $("lock").addEventListener("click", async () => {
+      const missing = studentRows().filter(tr => computeGrade(readRow(tr)) === null).length;
+      if (!studentRows().length) return toast("There are no students in this class.", true);
+      if (missing) return toast(`${missing} student${missing > 1 ? "s" : ""} still need complete scores before locking.`, true);
+      if (!confirm(`Submit and lock Quarter ${quarterSel.value} for this class? You will not be able to edit it afterwards.`)) return;
+      try {
+        await saveGrades();
+        await post("lock", { class_id: current().id, quarter: Number(quarterSel.value) });
+        applyLock(true); toast("Quarter submitted and locked.");
+      } catch (err) { toast(err.message, true); }
+    });
+
+    $("export").addEventListener("click", () => {
+      const c = current();
+      if (!c || !studentRows().length) return toast("Nothing to export yet.", true);
+      const head = ["Student", ...CATS.flatMap(k => [`${LABEL[k] || k} score`, `${LABEL[k] || k} total`]), "Quarter grade"];
+      const body = studentRows().map(tr => {
+        const pill = tr.querySelector(".pill").textContent;
+        return [tr.querySelector(".who span").textContent, ...[...tr.querySelectorAll("input")].map(i => i.value), pill === "-" ? "" : pill];
+      });
+      const esc = v => { v = String(v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+      const csv = [head, ...body].map(r => r.map(esc).join(",")).join("\r\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" }));
+      a.download = `${c.name}-${c.subject}-Q${quarterSel.value}.csv`;
+      a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    $("search").addEventListener("input", () => {
+      const q = $("search").value.toLowerCase();
+      studentRows().forEach(tr => tr.hidden = !tr.querySelector(".who span").textContent.toLowerCase().includes(q));
+    });
+
+    // ---- Dialogs: new class and student roster ----
+    document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => b.closest("dialog").close()));
+
+    // Grade 7 to 12, sections A to H (or type your own), and one tick per subject
+    let pending = [];     // classes just created that should all get the same students
+    for (let g = 7; g <= 12; g++) $("cGrade").add(new Option("Grade " + g, g));
+    "ABCDEFGH".split("").forEach(l => $("cSection").add(new Option("Section " + l, l)));
+    $("cSection").add(new Option("Other...", "_other"));
+
+    function className() {
+      const g = $("cGrade").value;
+      if ($("cSection").value === "_other") { const t = $("cSectionOther").value.trim(); return t ? `Grade ${g} - ${t}` : ""; }
+      return `Grade ${g} - Section ${$("cSection").value}`;
+    }
+    const chosen = () => [...document.querySelectorAll("#cSubjects input:checked")].map(i => i.value);
+    function preview() {
+      $("cSectionOther").hidden = $("cSection").value !== "_other";
+      const n = chosen().length, name = className();
+      $("cPreview").textContent = !name ? "Type the section name." : n ? `Creates ${n} class${n > 1 ? "es" : ""} named "${name}".` : "Choose at least one subject.";
+    }
+    ["cGrade", "cSection", "cSectionOther"].forEach(id => { $(id).addEventListener("change", preview); $(id).addEventListener("input", preview); });
+    $("cAll").addEventListener("click", () => {
+      const boxes = [...document.querySelectorAll("#cSubjects input")], all = boxes.every(b => b.checked);
+      boxes.forEach(b => b.checked = !all); preview();
+    });
+
+    $("newClass").addEventListener("click", () => {
+      $("cSectionOther").value = "";
+      document.querySelectorAll("#cSubjects input").forEach(b => b.checked = false);
+      preview(); $("dlgClass").showModal();
+    });
+    $("formClass").addEventListener("submit", async e => {
+      e.preventDefault();
+      const name = className(), subjects = chosen();
+      if (!name) return toast("Type the section name.", true);
+      if (!subjects.length) return toast("Choose at least one subject.", true);
+      const fresh = subjects.filter(s => !CLASSES.some(c => c.name === name && c.subject === s));
+      if (!fresh.length) return toast("You already have these classes.", true);
+
+      const btn = e.submitter; if (btn) btn.disabled = true;
+      const ids = [];
+      try { for (const s of fresh) ids.push((await post("class_create", { name, subject: s })).id); }
+      catch (err) { toast(err.message, true); }
+      if (btn) btn.disabled = false;
+      if (!ids.length) return;
+
+      $("dlgClass").close();
+      await refreshClasses(ids[0]);
+      const skipped = subjects.length - fresh.length;
+      toast(`Created ${ids.length} class${ids.length > 1 ? "es" : ""}${skipped ? ` (${skipped} already existed)` : ""}. Now add the students.`);
+      pending = ids;
+      openRoster().catch(err => toast(err.message, true));
+    });
+
+    async function openRoster() {
+      const c = current();
+      if (!c) return toast("Create a class first.", true);
+      const { students } = await get("roster", { class_id: c.id });
+      const box = $("checks"); box.innerHTML = "";
+      if (!students.length) box.textContent = "No students have registered yet.";
+      students.forEach(s => {
+        const label = document.createElement("label"), cb = document.createElement("input");
+        cb.type = "checkbox"; cb.value = s.id; cb.checked = Number(s.member) === 1;
+        label.append(cb, document.createTextNode(s.name));
+        box.appendChild(label);
+      });
+      $("rosterNote").hidden = pending.length < 2;
+      $("rosterNote").textContent = `These students will be added to all ${pending.length} new classes.`;
+      $("dlgRoster").showModal();
+    }
+    $("dlgRoster").addEventListener("close", () => { pending = []; });
+    $("manage").addEventListener("click", () => { pending = []; openRoster().catch(err => toast(err.message, true)); });
+    $("rosterSave").addEventListener("click", async () => {
+      const ids = [...document.querySelectorAll("#checks input:checked")].map(i => Number(i.value));
+      try {
+        const targets = pending.length ? pending : [current().id];
+        for (const t of targets) await post("roster_save", { class_id: t, student_ids: ids });
+        $("dlgRoster").close(); await loadClass(); toast("Students updated.");
+      } catch (err) { toast(err.message, true); }
+    });
+
+    classSel.addEventListener("change", loadClass);
+    quarterSel.addEventListener("change", loadClass);
+    $("logoutBtn").addEventListener("click", logout);
+
+    protect("teacher", async (user, data) => {
+      $("welcome").textContent = "Hello, " + data.name.split(" ")[0];
+      $("av").textContent = initials(data.name);
+      const cfg = await get("config");
+      WEIGHTS = cfg.weights; CATS = Object.keys(WEIGHTS);
+      cfg.subjects.forEach(s => {
+        const l = document.createElement("label"), cb = document.createElement("input");
+        cb.type = "checkbox"; cb.value = s; cb.addEventListener("change", preview);
+        l.append(cb, document.createTextNode(s)); $("cSubjects").appendChild(l);
+      });
+      preview();
+      CATS.forEach(c => { const s = document.createElement("span"); s.className = "chip"; s.textContent = `${LABEL[c] || c} ${WEIGHTS[c]}%`; $("chips").appendChild(s); });
+      $("head").innerHTML = "<tr><th>Student</th>" + CATS.map(c => `<th>${LABEL[c] || c} (score / total)</th>`).join("") + "<th>Quarter grade</th></tr>";
+      await refreshClasses();
+    });
+  </script>
+  <script src="logout-confirm.js"></script>
+  <script type="module" src="nav.js"></script>
+</body>
+</html>

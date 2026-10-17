@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payments</title>
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    /* Styles for this page live here so it looks right even with an older portal.css */
+    [hidden] { display: none !important; }
+    .lead { margin: 0 0 20px; color: var(--muted); }
+
+    /* summary banner */
+    .hero { display: grid; grid-template-columns: auto 1fr; gap: 26px; align-items: center; margin-bottom: 24px; padding: 26px 28px; border-radius: 22px; color: #fff;
+      background: radial-gradient(circle at 110% -10%, rgba(255,255,255,.16), transparent 45%), linear-gradient(135deg, #8c1426, #5a0a16);
+      box-shadow: 0 18px 36px -16px rgba(60,10,20,.7), inset -4px 0 0 #e0b12a; }
+    .ring { --p: 0; position: relative; width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center;
+      background: conic-gradient(#e0b12a calc(var(--p) * 1%), rgba(255,255,255,.18) 0); }
+    .ring::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: #6d0f1c; }
+    .ring span { position: relative; text-align: center; line-height: 1.1; }
+    .ring b { display: block; font-size: 1.7rem; }
+    .ring small { font-size: .78rem; color: #f2d98a; }
+    .hero h2 { margin: 0; font-size: .85rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #f2d98a; }
+    .hero .bal { margin: 2px 0 6px; font-size: 2.4rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .hero p { margin: 0; color: rgba(255,255,255,.88); }
+    .hero .mini { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 14px; }
+    .hero .mini div { min-width: 110px; }
+    .hero .mini span { display: block; font-size: .8rem; color: #f2d98a; }
+    .hero .mini b { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+    .hero .acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .hero button { padding: 10px 18px; font-size: .95rem; color: #4a0812; background: #e0b12a; }
+    .hero button.alt { color: #fff; background: rgba(255,255,255,.14); }
+
+    .alert { display: flex; gap: 14px; align-items: center; margin: 0 0 22px; padding: 14px 18px; font-weight: 700; color: var(--bad); border-radius: 14px;
+      border-left: 6px solid var(--bad); box-shadow: inset 3px 3px 7px var(--lo), inset -3px -3px 7px var(--hi); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+    button.chip { padding: 7px 16px; font-weight: 400; color: var(--ink); background: var(--bg); cursor: pointer; box-shadow: 3px 3px 7px var(--lo), -3px -3px 7px var(--hi); }
+    button.chip.on { color: var(--btn-ink); background: var(--btn); box-shadow: none; font-weight: 700; }
+    button.chip .n { margin-left: 6px; font-size: .82rem; opacity: .8; }
+
+    .gh { display: flex; align-items: center; gap: 10px; margin: 28px 0 12px; font-size: 1.05rem; color: var(--brand); }
+    .gh small { font-size: .9rem; font-weight: 400; color: var(--muted); }
+    @media (max-width: 600px) { .gh { flex-wrap: wrap; gap: 2px 10px; } .gh small { flex-basis: 100%; } }
+    .fees { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 20px; }
+    .fee { display: flex; flex-direction: column; padding: 20px 22px; border-radius: 18px; border-top: 5px solid var(--c, #8c1426); background: var(--bg);
+      box-shadow: 8px 8px 20px var(--lo), -8px -8px 20px var(--hi); }
+    .fee.paid { opacity: .82; }
+    .fee .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .fee h3 { margin: 0; font-size: 1.15rem; }
+    .fee .cat { font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c, #8c1426); }
+    .fee .desc { margin: 6px 0 0; font-size: .92rem; color: var(--muted); }
+    .fee .amt { margin: 14px 0 8px; font-size: 1.7rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .fee .amt small { font-size: .9rem; font-weight: 400; color: var(--muted); }
+    .bar { height: 9px; border-radius: 99px; overflow: hidden; box-shadow: inset 2px 2px 4px var(--lo), inset -2px -2px 4px var(--hi); }
+    .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: var(--good); transition: width .8s cubic-bezier(.2,.8,.2,1); }
+    .bar i.pend { background: repeating-linear-gradient(45deg, #e0b12a 0 6px, #f2c94c 6px 12px); }
+    .split { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: .92rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .split b { color: var(--ink); }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; font-size: .9rem; color: var(--muted); }
+    .fee .go { margin-top: auto; padding-top: 16px; display: flex; gap: 10px; align-items: center; }
+    .fee .go button { flex: 1; }
+    .note { color: var(--muted); font-size: .9rem; }
+
+    .tag { display: inline-block; padding: 3px 11px; font-size: .82rem; font-weight: 700; border-radius: 99px; white-space: nowrap; }
+    .t-paid { color: #fff; background: var(--good); }
+    .t-partial { color: #2a0a10; background: #e0b12a; }
+    .t-unpaid { color: var(--ink); box-shadow: inset 2px 2px 4px var(--lo), inset -2px -2px 4px var(--hi); }
+    .t-overdue { color: #fff; background: var(--bad); }
+    .t-pending { color: #2a0a10; background: #f2d98a; }
+    .t-confirmed { color: #fff; background: var(--good); }
+    .t-rejected { color: #fff; background: var(--bad); }
+
+    .hist { margin-top: 34px; }
+    .hist h2 { margin: 0 0 14px; font-size: 1.25rem; }
+    .hist td, .hist th { text-align: left; }
+    .hist td.num, .hist th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .hist button { padding: 7px 14px; font-size: .88rem; }
+    .why { display: block; font-size: .85rem; color: var(--bad); }
+
+    /* pay window */
+    #dlgPay { width: min(520px, 94vw); }
+    .feebox { margin-bottom: 16px; padding: 14px 16px; border-radius: 12px; box-shadow: inset 3px 3px 7px var(--lo), inset -3px -3px 7px var(--hi); }
+    .feebox b { display: block; font-size: 1.05rem; }
+    .lab { display: block; margin: 4px 0 8px; font-size: .92rem; font-weight: 700; color: var(--muted); }
+    .amtrow { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .amtrow .field { margin: 0; flex: 1; font-size: 1.2rem; font-weight: 700; }
+    .amtrow button { padding: 9px 14px; font-size: .88rem; }
+    .methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .methods label { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; cursor: pointer; border-radius: 14px;
+      box-shadow: 4px 4px 9px var(--lo), -4px -4px 9px var(--hi); }
+    .methods label small { font-size: .78rem; color: var(--muted); }
+    .methods input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+    .methods label:has(input:checked) { color: var(--btn-ink); background: var(--btn); box-shadow: none; }
+    .methods label:has(input:checked) small { color: inherit; opacity: .85; }
+    .methods label:has(input:focus-visible) { outline: 3px solid #f0b429; outline-offset: 2px; }
+    .methods label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+    .howto { margin-bottom: 14px; padding: 14px 16px; border-radius: 12px; border-left: 5px solid #e0b12a; background: rgba(224,177,42,.12); }
+    .howto ol { margin: 6px 0 0; padding-left: 20px; }
+    .howto code { font-family: inherit; font-weight: 700; }
+    .gateway { margin-bottom: 14px; padding: 16px; text-align: center; border: 2px dashed var(--line); border-radius: 12px; color: var(--muted); }
+    .gateway b { display: block; color: var(--ink); }
+
+    /* receipt */
+    #dlgReceipt { width: min(460px, 94vw); }
+    .rc { padding: 22px; color: #1a1a1a; background: #fff; border-radius: 12px; border: 1px solid #ddd; }
+    .rc header { display: flex; gap: 12px; align-items: center; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 3px solid #7a1020; }
+    .rc .logo { display: grid; place-items: center; width: 42px; height: 42px; font-weight: 700; color: #4a0812; background: #e0b12a; border-radius: 12px; }
+    .rc header b { display: block; color: #7a1020; font-size: 1.1rem; }
+    .rc header small { color: #555; }
+    .rc dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+    .rc dt { color: #555; } .rc dd { margin: 0; text-align: right; font-weight: 700; }
+    .rc .total { margin-top: 14px; padding-top: 12px; display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; border-top: 1px dashed #999; }
+    .rc .stamp { margin-top: 14px; text-align: center; font-size: .82rem; color: #555; }
+
+    #printArea { display: none; }
+    @media print {
+      body.printing > *:not(#printArea) { display: none !important; }
+      body.printing #printArea { display: block !important; color: #000; }
+      #printArea table { width: 100%; border-collapse: collapse; }
+      #printArea th, #printArea td { padding: 6px; border-bottom: 1px solid #999; color: #000; text-align: left; }
+      #printArea .num { text-align: right; }
+    }
+    @media (max-width: 600px) {
+      .hero { grid-template-columns: 1fr; justify-items: start; padding: 22px; }
+      .ring { width: 104px; height: 104px; } .ring b { font-size: 1.35rem; }
+      .hero .bal { font-size: 2rem; }
+      .hist thead { display: none; }
+      .hist tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+      .hist td { padding: 0; border: 0; }
+      .hist td.num { text-align: right; }
+    }
+  </style>
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar noprint">
+      <h1>Payments</h1>
+      <div class="avatar" id="av"></div>
+      <a class="navlink" href="student.html">Grades</a>
+      <a class="navlink" href="attendance.html">Attendance</a>
+      <button class="ghost" id="logoutBtn">Log out</button>
+    </header>
+
+    <p class="lead">Your school fees for the whole school, your grade, your classes and your subjects, with everything you've paid.</p>
+
+    <section class="hero" id="hero" aria-live="polite">
+      <div class="ring" id="ring"><span><b id="pct">0%</b><small>paid</small></span></div>
+      <div>
+        <h2>Balance to pay</h2>
+        <div class="bal" id="bal">...</div>
+        <p id="heroMsg"></p>
+        <div class="mini" id="mini"></div>
+        <div class="acts">
+          <button type="button" id="payNext" hidden>Pay next due fee</button>
+          <button type="button" class="alt" id="printSoa">Print statement</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="alert" id="overdue" hidden role="alert"></div>
+
+    <div class="chips" id="filters" role="toolbar" aria-label="Show fees"></div>
+    <div id="list"></div>
+
+    <section class="hist panel">
+      <h2>Payment history</h2>
+      <div id="hist"></div>
+    </section>
+  </div>
+
+  <!-- pay one fee -->
+  <dialog id="dlgPay" aria-labelledby="payTitle">
+    <h2 id="payTitle">Pay a fee</h2>
+    <form id="payForm">
+      <div class="feebox" id="payFee"></div>
+      <label class="lab" for="payAmt">Amount to pay</label>
+      <div class="amtrow">
+        <input class="field" id="payAmt" type="number" inputmode="decimal" min="1" step="0.01" required>
+        <button type="button" class="ghost" id="amtFull">Full</button>
+        <button type="button" class="ghost" id="amtHalf">Half</button>
+      </div>
+      <p class="note" id="amtNote"></p>
+      <span class="lab">How will you pay?</span>
+      <div class="methods" id="methods"></div>
+      <div id="methodInfo"></div>
+      <div class="actions"><button type="button" class="ghost" id="payCancel">Cancel</button><button type="submit" id="paySend">Send payment</button></div>
+    </form>
+  </dialog>
+
+  <!-- receipt -->
+  <dialog id="dlgReceipt" aria-label="Payment receipt">
+    <div class="rc" id="rc"></div>
+    <div class="actions" style="margin-top:16px"><button type="button" class="ghost" id="rcClose">Close</button><button type="button" id="rcPrint">Print</button></div>
+  </dialog>
+
+  <div id="printArea"></div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module">
+    import { get, post, protect, logout } from "./guard.js";
+    const $ = id => document.getElementById(id);
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+    const peso = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+    const money = n => peso.format(Number(n) || 0);
+    const r2 = n => Math.round(n * 100) / 100;
+    const dateOf = s => new Date(String(s).slice(0, 10) + "T00:00:00");
+    const niceDate = s => s ? dateOf(s).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+    const CAT = { tuition: ["Tuition", "#8c1426"], miscellaneous: ["Miscellaneous", "#6b4fa0"], laboratory: ["Laboratory", "#1f7a6d"], books: ["Books", "#2f6fb0"],
+                  uniform: ["Uniform", "#b0482f"], activity: ["Activity", "#b7791f"], exam: ["Exam", "#7a1020"], other: ["Other", "#5c4f51"] };
+    const GROUPS = [["school", "Whole school", "Fees every student pays"], ["grade", "Your grade level", "Fees for your grade or year"],
+                    ["class", "Your classes and rooms", "Fees for a class you are in"], ["subject", "Your subjects", "Fees for a subject you take"]];
+    const METHOD_NAME = { gcash: "GCash", maya: "Maya", bank: "Bank transfer", cash: "Cash", online: "Online" };
+    let toastTimer;
+    function toast(text, bad = false) {
+      const t = $("toast"); t.textContent = text; t.className = "toast show" + (bad ? " bad" : "");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", 3600);
+    }
+    function ask(title, message, yes) {
+      return new Promise(resolve => {
+        let done = false; const d = el("dialog");
+        const finish = v => { if (done) return; done = true; try { d.close(); } catch (e) {} d.remove(); resolve(v); };
+        const row = el("div", "actions"), no = el("button", "ghost", "No"), ok = el("button", null, yes);
+        no.type = ok.type = "button"; no.onclick = () => finish(false); ok.onclick = () => finish(true);
+        row.append(no, ok); d.append(el("h2", null, title), el("p", null, message), row);
+        d.addEventListener("cancel", e => { e.preventDefault(); finish(false); }); d.addEventListener("close", () => finish(false));
+        document.body.appendChild(d); d.showModal(); no.focus();
+      });
+    }
+    $("logoutBtn").addEventListener("click", logout);
+
+    let D = null, filter = "all", paying = null;
+
+    // paid, waiting, balance and status of one fee
+    function figure(f) {
+      const amount = Number(f.amount), paid = Number(f.paid), pending = Number(f.pending);
+      const balance = r2(Math.max(0, amount - paid)), open = r2(Math.max(0, amount - paid - pending));
+      const days = f.due_date ? Math.round((dateOf(f.due_date) - dateOf(D.today)) / 86400000) : null;
+      let status = balance <= 0 ? "paid" : days !== null && days < 0 ? "overdue" : paid > 0 ? "partial" : "unpaid";
+      return { amount, paid, pending, balance, open, days, status };
+    }
+    const STATUS = { paid: "Paid", partial: "Partly paid", unpaid: "Not paid", overdue: "Overdue" };
+    function dueText(x) {
+      if (x.days === null) return "No due date";
+      if (x.status === "paid") return "Was due " + niceDate(x.due);
+      if (x.days < 0) return `${-x.days} day${x.days === -1 ? "" : "s"} overdue`;
+      if (x.days === 0) return "Due today";
+      if (x.days <= 7) return `Due in ${x.days} day${x.days === 1 ? "" : "s"}`;
+      return "Due " + niceDate(x.due);
+    }
+    function scopeText(f) {
+      if (f.applies_to === "grade") return f.grade_level;
+      if (f.applies_to === "class") return "Class: " + (f.class_name || "");
+      if (f.applies_to === "subject") return "Subject: " + f.subject;
+      return "Whole school";
+    }
+
+    function summary() {
+      const xs = D.fees.map(figure);
+      const total = xs.reduce((s, x) => s + x.amount, 0), paid = xs.reduce((s, x) => s + x.paid, 0);
+      const bal = xs.reduce((s, x) => s + x.balance, 0), pend = xs.reduce((s, x) => s + x.pending, 0);
+      const late = D.fees.filter((f, i) => xs[i].status === "overdue");
+      const pct = total ? Math.round(paid / total * 100) : 100;
+      $("ring").style.setProperty("--p", pct); $("pct").textContent = pct + "%";
+      $("bal").textContent = money(bal);
+      $("heroMsg").textContent = !D.fees.length ? "You have no school fees right now."
+        : bal <= 0 ? "Everything is paid. Thank you!"
+        : late.length ? `${late.length} fee${late.length > 1 ? "s are" : " is"} past the due date.`
+        : pend > 0 ? "Some payments are waiting for the school to confirm them."
+        : "You're on track. Pay before each due date to stay up to date.";
+      const mini = $("mini"); mini.innerHTML = "";
+      [["Total fees", money(total)], ["Paid", money(paid)], ["Being checked", money(pend)], ["Fees", String(D.fees.length)]].forEach(([l, v]) => {
+        const d = el("div"); d.append(el("span", null, l), el("b", null, v)); mini.appendChild(d);
+      });
+      const next = D.fees.map((f, i) => [f, xs[i]]).filter(([, x]) => x.open > 0).sort((a, b) => (a[1].days ?? 1e9) - (b[1].days ?? 1e9))[0];
+      $("payNext").hidden = !next;
+      $("payNext").onclick = () => next && openPay(next[0]);
+      if (next) $("payNext").textContent = "Pay " + next[0].title;
+      const o = $("overdue");
+      o.hidden = !late.length;
+      o.textContent = late.length ? "Overdue: " + late.map(f => `${f.title} (${money(figure(f).balance)})`).join(", ") + ". Please pay or talk to the school office." : "";
+    }
+
+    function filters() {
+      const box = $("filters"); box.innerHTML = "";
+      const xs = D.fees.map(figure);
+      const count = k => k === "all" ? xs.length : k === "topay" ? xs.filter(x => x.balance > 0).length : xs.filter(x => x.status === k).length;
+      [["all", "All"], ["topay", "To pay"], ["overdue", "Overdue"], ["paid", "Paid"]].forEach(([k, label]) => {
+        const b = el("button", "chip" + (filter === k ? " on" : ""), label); b.type = "button"; b.setAttribute("aria-pressed", String(filter === k));
+        b.appendChild(el("span", "n", String(count(k))));
+        b.onclick = () => { filter = k; filters(); render(); };
+        box.appendChild(b);
+      });
+    }
+
+    function card(f) {
+      const x = figure(f); x.due = f.due_date;
+      const [catName, color] = CAT[f.category] || CAT.other;
+      const c = el("article", "fee" + (x.status === "paid" ? " paid" : "")); c.style.setProperty("--c", color);
+      const top = el("div", "top"), head = el("div");
+      head.append(el("div", "cat", catName), el("h3", null, f.title));
+      top.append(head, el("span", "tag t-" + x.status, STATUS[x.status]));
+      c.appendChild(top);
+      if (f.description) c.appendChild(el("p", "desc", f.description));
+      const amt = el("div", "amt", money(x.balance)); amt.appendChild(el("small", null, x.balance > 0 ? " left of " + money(x.amount) : " of " + money(x.amount)));
+      c.appendChild(amt);
+      const bar = el("div", "bar"), done = el("i"); bar.style.display = "flex"; bar.appendChild(done);
+      const pend = el("i", "pend"); bar.appendChild(pend);
+      c.appendChild(bar);
+      requestAnimationFrame(() => { done.style.width = (x.amount ? x.paid / x.amount * 100 : 0) + "%"; pend.style.width = (x.amount ? x.pending / x.amount * 100 : 0) + "%"; });
+      const split = el("div", "split"), a = el("span"), b = el("span");
+      a.append("Paid "); a.appendChild(el("b", null, money(x.paid)));
+      if (x.pending > 0) { b.append("Being checked "); b.appendChild(el("b", null, money(x.pending))); }
+      split.append(a, b); c.appendChild(split);
+      const meta = el("div", "meta");
+      meta.append(el("span", null, dueText(x)), el("span", null, "·"), el("span", null, scopeText(f)));
+      if (!Number(f.allow_partial)) meta.append(el("span", null, "·"), el("span", null, "Full payment only"));
+      c.appendChild(meta);
+      const go = el("div", "go");
+      if (x.open > 0) { const p = el("button", null, x.paid > 0 || x.pending > 0 ? "Pay the rest" : "Pay now"); p.type = "button"; p.onclick = () => openPay(f); go.appendChild(p); }
+      else if (x.balance > 0) go.appendChild(el("span", "note", "Your payment is being checked. You'll get a receipt once it's confirmed."));
+      else go.appendChild(el("span", "note", "Fully paid. Your receipts are in the payment history below."));
+      c.appendChild(go);
+      return c;
+    }
+
+    function render() {
+      const list = $("list"); list.innerHTML = "";
+      const show = D.fees.filter(f => { const x = figure(f); return filter === "all" || (filter === "topay" ? x.balance > 0 : x.status === filter); });
+      if (!show.length) {
+        list.appendChild(el("p", "empty", D.fees.length ? "No fees match this filter." : "You have no school fees right now. When the school adds a fee for you, it shows up here."));
+        return;
+      }
+      GROUPS.forEach(([key, title, hint]) => {
+        const fs = show.filter(f => f.applies_to === key); if (!fs.length) return;
+        const left = fs.reduce((s, f) => s + figure(f).balance, 0);
+        const h = el("h2", "gh", title); h.appendChild(el("small", null, `${hint} · ${money(left)} left`));
+        const grid = el("div", "fees"); fs.forEach(f => grid.appendChild(card(f)));
+        list.append(h, grid);
+      });
+    }
+
+    function history() {
+      const box = $("hist"); box.innerHTML = "";
+      if (!D.payments.length) { box.appendChild(el("p", "empty", "No payments yet.")); return; }
+      const t = el("table"), head = el("thead"), hr = el("tr"), body = el("tbody");
+      [["Date"], ["Fee"], ["Paid by"], ["Amount", "num"], ["Status"], [""]].forEach(([h, cls]) => hr.appendChild(el("th", cls, h)));
+      head.appendChild(hr);
+      D.payments.forEach(p => {
+        const tr = el("tr");
+        tr.appendChild(el("td", null, niceDate(p.created_at)));
+        const fee = el("td"); fee.append(el("b", null, p.fee_title)); if (p.reference) fee.append(el("small", "note", " Ref " + p.reference)); tr.appendChild(fee);
+        tr.appendChild(el("td", null, METHOD_NAME[p.method] || p.method));
+        tr.appendChild(el("td", "num", money(p.amount)));
+        const st = el("td"); st.appendChild(el("span", "tag t-" + p.status, { pending: "Being checked", confirmed: "Confirmed", rejected: "Not accepted" }[p.status]));
+        if (p.status === "rejected" && p.note) st.appendChild(el("span", "why", p.note));
+        tr.appendChild(st);
+        const act = el("td");
+        if (p.status === "confirmed") { const b = el("button", "ghost", "Receipt"); b.type = "button"; b.onclick = () => receipt(p); act.appendChild(b); }
+        if (p.status === "pending") {
+          const b = el("button", "ghost", "Cancel"); b.type = "button";
+          b.onclick = async () => {
+            if (!(await ask("Cancel this payment?", "Only cancel it if you sent the wrong details. The school won't check it anymore.", "Yes, cancel"))) return;
+            try { await post("pay_cancel", { id: p.id }); toast("Payment cancelled."); load(); } catch (e) { toast(e.message, true); }
+          };
+          act.appendChild(b);
+        }
+        tr.appendChild(act); body.appendChild(tr);
+      });
+      t.append(head, body); box.appendChild(t);
+    }
+
+    // ---------- Pay window ----------
+    function openPay(f) {
+      paying = f; const x = figure(f);
+      const box = $("payFee"); box.innerHTML = "";
+      box.append(el("b", null, f.title), el("span", "note", `${scopeText(f)} · ${money(x.open)} left to pay · ${dueText({ ...x, due: f.due_date })}`));
+      const amt = $("payAmt"); amt.value = x.open.toFixed(2); amt.max = x.open;
+      const partial = Number(f.allow_partial) === 1;
+      amt.readOnly = !partial; $("amtFull").hidden = $("amtHalf").hidden = !partial;
+      $("amtNote").textContent = partial ? "You can pay part of it now and the rest later." : "This fee has to be paid in full.";
+      const m = $("methods"); m.innerHTML = "";
+      const opts = [["online", "Pay online", D.online ? "Card or e-wallet" : "Coming soon", !D.online]]
+        .concat(Object.entries(D.methods).map(([k, v]) => [k, v.label, k === "cash" ? "At the office" : "Send, then enter the reference", false]));
+      opts.forEach(([k, label, sub, off], i) => {
+        const l = el("label"), r = el("input"); r.type = "radio"; r.name = "method"; r.value = k; r.disabled = off;
+        l.append(r, el("b", null, label), el("small", null, sub)); m.appendChild(l);
+      });
+      const first = m.querySelector("input:not(:disabled)"); if (first) first.checked = true;
+      methodInfo();
+      $("dlgPay").showModal(); amt.focus();
+    }
+    function methodInfo() {
+      const k = $("payForm").method.value, box = $("methodInfo"); box.innerHTML = "";
+      const send = $("paySend"); send.hidden = false;
+      if (k === "online") {
+        send.textContent = "Continue to payment";
+        const g = el("div", "gateway"); g.append(el("b", null, "Secure online checkout"), "You'll be taken to the payment page to pay by card, GCash or Maya, then brought back here.");
+        box.appendChild(g); return;
+      }
+      const v = D.methods[k], how = el("div", "howto");
+      if (k === "cash") {
+        how.append(el("b", null, "Pay at the cashier"), el("p", null, `${v.account}. Bring your ID. The cashier records your payment and it appears here with a receipt.`));
+        box.appendChild(how); send.hidden = true; return;
+      }
+      send.textContent = "Send payment";
+      const ol = el("ol"), acc = el("li");
+      acc.append(`Send ${money($("payAmt").value)} by ${v.label} to `); acc.appendChild(el("code", null, v.account)); if (v.name) acc.append(` (${v.name})`); acc.append(".");
+      ol.append(acc, el("li", null, "Copy the reference number from your receipt or text message."), el("li", null, "Enter it below. The school checks it and gives you a receipt."));
+      how.append(el("b", null, `Paying by ${v.label}`), ol);
+      const ref = el("input", "field"); ref.id = "payRef"; ref.placeholder = "Reference number"; ref.required = true; ref.maxLength = 60; ref.autocomplete = "off";
+      ref.pattern = "[A-Za-z0-9 \\-]{4,60}"; ref.title = "Letters and numbers, 4 to 60 characters";
+      box.append(how, ref);
+    }
+    $("methods").addEventListener("change", methodInfo);
+    $("payAmt").addEventListener("input", () => { const c = $("methodInfo").querySelector("code"); if (c) methodInfo(); });
+    $("amtFull").onclick = () => { $("payAmt").value = figure(paying).open.toFixed(2); methodInfo(); };
+    $("amtHalf").onclick = () => { $("payAmt").value = r2(figure(paying).open / 2).toFixed(2); methodInfo(); };
+    $("payCancel").onclick = () => $("dlgPay").close();
+    $("payForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const k = $("payForm").method.value, amount = Number($("payAmt").value), btn = $("paySend");
+      btn.disabled = true;
+      try {
+        if (k === "online") {
+          // The server starts the checkout with the payment gateway and sends back where to go (see 'pay_online_start' in api.php).
+          const r = await post("pay_online_start", { fee_id: paying.id, amount });
+          if (r.redirect) { location.href = r.redirect; return; }
+        } else {
+          await post("pay_submit", { fee_id: paying.id, amount, method: k, reference: $("payRef").value.trim() });
+          $("dlgPay").close(); toast("Payment sent. The school will check it and give you a receipt."); load();
+        }
+      } catch (err) { toast(err.message, true); }
+      btn.disabled = false;
+    });
+
+    // ---------- Receipt and statement ----------
+    function receiptHTML(p) {
+      const rc = el("div"), head = el("header"), t = el("div");
+      t.append(el("b", null, "School Portal"), el("small", null, "Acknowledgement receipt"));
+      head.append(el("span", "logo", "SP"), t); rc.appendChild(head);
+      const dl = el("dl");
+      [["Receipt no.", p.receipt_no], ["Date", niceDate(p.decided_at || p.created_at)], ["Student", D.student.name], ["ID number", D.student.school_id || "-"],
+       ["Grade level", D.student.grade_level || "-"], ["For", p.fee_title], ["Paid by", METHOD_NAME[p.method] || p.method], ["Reference", p.reference || "-"],
+       ["Checked by", p.decided_by || "-"]].forEach(([k, v]) => dl.append(el("dt", null, k), el("dd", null, v)));
+      rc.appendChild(dl);
+      const tot = el("div", "total"); tot.append(el("span", null, "Amount"), el("span", null, money(p.amount))); rc.appendChild(tot);
+      rc.appendChild(el("p", "stamp", "This receipt was made by the School Portal after the payment was confirmed."));
+      return rc;
+    }
+    let printing = null;
+    function receipt(p) { printing = p; const rc = $("rc"); rc.replaceChildren(...receiptHTML(p).childNodes); $("dlgReceipt").showModal(); }
+    $("rcClose").onclick = () => $("dlgReceipt").close();
+    function printOnly(node) {
+      $("printArea").replaceChildren(node); document.body.classList.add("printing");
+      const done = () => { document.body.classList.remove("printing"); window.removeEventListener("afterprint", done); };
+      window.addEventListener("afterprint", done); window.print(); setTimeout(done, 1000);
+    }
+    $("rcPrint").onclick = () => { const n = el("div", "rc"); n.append(...receiptHTML(printing).childNodes); $("dlgReceipt").close(); printOnly(n); };
+    $("printSoa").onclick = () => {
+      const box = el("div");
+      box.append(el("h1", null, "Statement of account"), el("p", null, `${D.student.name} · ${D.student.school_id || ""} · ${D.student.grade_level || ""} · as of ${niceDate(D.today)}`));
+      const t = el("table"), hr = el("tr");
+      [["Fee"], ["For"], ["Due"], ["Amount", "num"], ["Paid", "num"], ["Balance", "num"]].forEach(([h, c]) => hr.appendChild(el("th", c, h)));
+      t.appendChild(hr);
+      let A = 0, P = 0, B = 0;
+      D.fees.forEach(f => {
+        const x = figure(f), tr = el("tr"); A += x.amount; P += x.paid; B += x.balance;
+        [[f.title], [scopeText(f)], [f.due_date ? niceDate(f.due_date) : "-"], [money(x.amount), "num"], [money(x.paid), "num"], [money(x.balance), "num"]].forEach(([v, c]) => tr.appendChild(el("td", c, v)));
+        t.appendChild(tr);
+      });
+      const tr = el("tr"); [["Total"], [""], [""], [money(A), "num"], [money(P), "num"], [money(B), "num"]].forEach(([v, c]) => { const td = el("td", c); td.appendChild(el("b", null, v)); tr.appendChild(td); });
+      t.appendChild(tr); box.appendChild(t);
+      printOnly(box);
+    };
+
+    async function load() {
+      try {
+        D = await get("fees_mine");
+        summary(); filters(); render(); history();
+      } catch (err) {
+        $("list").replaceChildren(el("p", "empty", err.message + (/Server error/.test(err.message) ? " Has update9.sql been imported?" : "")));
+      }
+    }
+    protect("student", user => { $("av").textContent = initials(user.name); load(); });
+  </script>
+  <script type="module" src="badge.js"></script>
+  <script src="logout-confirm.js"></script>
+  <script type="module" src="nav.js"></script>
+</body>
+</html>

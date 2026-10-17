@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>School Portal - Create account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="auth.css">
+  <style>
+    /* Compact layout so the longer form still fits the card */
+    .form { padding: 32px 36px; }
+    .form input, .form select { padding: 12px 16px; margin-bottom: 10px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .row2.single { grid-template-columns: 1fr; }
+    .showpw { display: flex; align-items: center; gap: 8px; align-self: flex-start; margin: 0 0 6px 4px; font-size: .95rem; color: var(--muted); cursor: pointer; }
+    .showpw input { width: 18px; height: 18px; margin: 0; padding: 0; box-shadow: none; accent-color: var(--navy); }
+    @media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
+  </style>
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="container">
+    <div class="overlay left">
+      <div class="ov">
+        <h1>Welcome back!</h1>
+        <p>Already registered? Sign in with your email to continue.</p>
+        <a class="ghost" href="login.html">Sign in</a>
+      </div>
+    </div>
+
+    <form class="form" id="upForm">
+      <h1>Create account</h1>
+      <p class="sub">Fill in your details to register</p>
+      <select id="role" aria-label="I am a">
+        <option value="student">I am a student</option>
+        <option value="pending_teacher">I am a teacher (needs approval)</option>
+      </select>
+      <input type="text" id="name" placeholder="Full name" required autocomplete="name" maxlength="100">
+      <input type="email" id="email" placeholder="Email" required autocomplete="email">
+      <div class="row2" id="idRow">
+        <input type="text" id="schoolId" placeholder="Student ID number" required maxlength="30" autocomplete="off">
+        <input type="text" id="grade" placeholder="Grade level" required maxlength="20" autocomplete="off">
+      </div>
+      <input type="tel" id="phone" placeholder="Contact number (optional)" autocomplete="tel" maxlength="20">
+      <div class="row2">
+        <input type="password" id="password" placeholder="Password (6+)" required minlength="6" autocomplete="new-password">
+        <input type="password" id="password2" placeholder="Confirm password" required autocomplete="new-password">
+      </div>
+      <label class="showpw"><input type="checkbox" id="showPw"> Show passwords</label>
+      <button class="btn" type="submit">Sign up</button>
+      <p class="msg" id="msg"></p>
+      <a href="login.html" class="swap">Already registered? Sign in</a>
+    </form>
+  </div>
+
+  <script>
+    // Plain script so a clear message still shows if the page is opened the wrong way
+    document.querySelectorAll("form").forEach(f => f.addEventListener("submit", e => e.preventDefault()));
+    if (location.protocol === "file:") {
+      const m = document.getElementById("msg");
+      m.textContent = "Open this site at http://localhost/school-portal/login.html with XAMPP running, not by double-clicking the file.";
+      m.className = "msg";
+    }
+  </script>
+  <script src="auth-transition.js"></script>
+  <script type="module">
+    import { post } from "./guard.js";
+    const $ = id => document.getElementById(id);
+    const msg = $("msg");
+    const say = (text, ok = false) => { msg.textContent = text; msg.className = "msg" + (ok ? " ok" : ""); };
+
+    // Teachers do not need a grade level
+    function syncRole() {
+      const student = $("role").value === "student";
+      $("grade").hidden = !student; $("grade").required = student;
+      $("idRow").classList.toggle("single", !student);
+      $("schoolId").placeholder = student ? "Student ID number" : "Employee ID number";
+    }
+    $("role").addEventListener("change", syncRole);
+    syncRole();
+
+    $("showPw").addEventListener("change", e => {
+      ["password", "password2"].forEach(id => $(id).type = e.target.checked ? "text" : "password");
+    });
+
+    $("upForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const role = $("role").value, password = $("password").value;
+      const schoolId = $("schoolId").value.trim(), phone = $("phone").value.trim();
+      if (!/^[A-Za-z0-9-]{3,30}$/.test(schoolId)) return say("Enter a valid ID number: letters, numbers and dashes, 3 to 30 characters.");
+      if (phone && !/^[0-9+() -]{7,20}$/.test(phone)) return say("Enter a valid contact number.");
+      if (password.length < 6) return say("Password must be at least 6 characters.");
+      if (password !== $("password2").value) return say("The two passwords do not match.");
+
+      say("Creating account...", true);
+      try {
+        await post("register", {
+          name: $("name").value.trim(), email: $("email").value.trim(), password, role,
+          school_id: schoolId, grade_level: role === "student" ? $("grade").value.trim() : "", phone
+        });
+        if (role === "student") { location.href = "student.html"; return; }
+        say("Account created. The administrator must approve it before you can sign in.", true);
+      } catch (err) { say(err.message); }
+    });
+  </script>
+</body>
+</html>

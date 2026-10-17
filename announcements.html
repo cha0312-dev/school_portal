@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Announcements</title>
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    /* Styles for this page live here so it looks right even with an older portal.css */
+    [hidden] { display: none !important; }
+    .lead { margin: 0 0 20px; color: var(--muted); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 14px; }
+    .toolbar .find { flex: 1 1 260px; position: relative; }
+    .toolbar .find input { width: 100%; padding: 13px 16px 13px 44px; font: inherit; color: var(--ink); background: var(--bg); border: 0; border-radius: 999px;
+      box-shadow: inset 3px 3px 7px var(--lo), inset -3px -3px 7px var(--hi); }
+    .toolbar .find svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+    button.chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; font-weight: 400; color: var(--ink); background: var(--bg); cursor: pointer;
+      box-shadow: 3px 3px 7px var(--lo), -3px -3px 7px var(--hi); }
+    button.chip.on { color: var(--btn-ink); background: var(--btn); box-shadow: none; font-weight: 700; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c, #8c1426); }
+    .field { width: 100%; padding: 12px 16px; margin-bottom: 12px; font: inherit; color: var(--ink); background: var(--bg); border: 0; border-radius: 10px;
+      box-shadow: inset 3px 3px 7px var(--lo), inset -3px -3px 7px var(--hi); }
+    textarea.field { min-height: 130px; resize: vertical; }
+    .lab { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; font-size: .92rem; font-weight: 700; color: var(--muted); }
+    button.linkbtn { padding: 0; font-size: .9rem; font-weight: 700; color: var(--brand); background: none; box-shadow: none; text-decoration: underline; }
+    .actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+    .counter { margin: -6px 0 12px; text-align: right; font-size: .85rem; color: var(--muted); }
+    #composer { margin-bottom: 22px; border-top: 5px solid var(--gold, #e0b12a); }
+    #composer h2 { margin: 0 0 14px; font-size: 1.25rem; }
+
+    .gh { margin: 26px 0 12px; font-size: .95rem; font-weight: 700; color: var(--muted); }
+    .post { --c: #8c1426; display: flex; gap: 16px; margin-bottom: 16px; border-left: 6px solid var(--c); }
+    .post.fresh { border-left-color: #e0b12a; background-color: var(--bg); background-image: linear-gradient(90deg, rgba(224,177,42,.16), transparent 50%); }
+    .post .avatar { flex: none; }
+    .pbody { flex: 1; min-width: 0; }
+    .post h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 6px; font-size: 1.2rem; }
+    .newtag { display: inline-block; padding: 2px 12px; font-size: .8rem; font-weight: 700; color: #2a0a10; background: #e0b12a; border-radius: 99px; }
+    .meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; font-size: .9rem; color: var(--muted); }
+    .cls { display: inline-flex; align-items: center; gap: 7px; padding: 3px 12px; font-weight: 700; color: var(--ink); border-radius: 99px;
+      box-shadow: inset 2px 2px 4px var(--lo), inset -2px -2px 4px var(--hi); }
+    .post p { margin: 12px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .post p a { color: var(--brand); font-weight: 700; }
+    .clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    button.small { margin-top: 12px; margin-right: 8px; padding: 7px 16px; font-size: .92rem; }
+    @media (prefers-reduced-motion: no-preference) {
+      .post { animation: rise .35s ease both; animation-delay: calc(var(--i, 0) * 45ms); }
+      @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+    }
+    .sk { height: 120px; margin-bottom: 16px; border-radius: 18px; opacity: .5; background: linear-gradient(90deg, var(--lo), var(--hi), var(--lo)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    .none { padding: 44px 10px; text-align: center; color: var(--muted); }
+    .none svg { display: block; margin: 0 auto 12px; color: var(--brand); opacity: .75; }
+    .none b { display: block; margin-bottom: 4px; font-size: 1.1rem; color: var(--ink); }
+    .cb { width: min(380px, 92vw); padding: 26px; border: 0; border-radius: 18px; color: var(--ink); background: var(--bg); box-shadow: 0 24px 60px rgba(40,10,16,.45), 0 2px 8px rgba(40,10,16,.25); }
+    .cb::backdrop { background: rgba(40,10,16,.5); }
+    .cb h2 { margin: 0 0 8px; font-size: 1.3rem; color: var(--brand); } .cb p { margin: 0 0 22px; color: var(--muted); }
+    @media (max-width: 700px) {
+      .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; } button.chip { flex: none; }
+      .post { padding: 16px; } .post .avatar { display: none; } #composer .chips { flex-wrap: wrap; overflow: visible; }
+    }
+  </style>
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar noprint">
+      <h1>Announcements</h1>
+      <div class="avatar" id="av"></div>
+      <a class="navlink" id="home" href="login.html">Grades</a>
+      <a class="navlink" href="attendance.html">Attendance</a>
+      <button class="ghost" id="logoutBtn">Log out</button>
+    </header>
+
+    <p class="lead" id="lead"></p>
+    <section class="stats" id="stats"></section>
+
+    <div class="toolbar">
+      <label class="find">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" id="search" placeholder="Search announcements" aria-label="Search announcements">
+      </label>
+      <button id="composeBtn" hidden>+ New announcement</button>
+    </div>
+
+    <section class="panel" id="composer" hidden>
+      <h2>New announcement</h2>
+      <form id="form">
+        <p class="lab"><span>Post to</span><button type="button" class="linkbtn" id="allClasses">Select all</button></p>
+        <div class="chips" id="postTo"></div>
+        <p class="lab"><span>Quick start</span></p>
+        <div class="chips" id="tpl"></div>
+        <input class="field" id="title" placeholder="Title" maxlength="120" required>
+        <textarea class="field" id="body" placeholder="Write your message to the class" maxlength="2000" required></textarea>
+        <p class="counter"><span id="count">0</span> / 2000</p>
+        <div class="actions"><button type="button" class="ghost" id="cancelPost">Cancel</button><button type="submit">Post</button></div>
+      </form>
+    </section>
+
+    <div class="chips" id="filters"></div>
+    <div id="list" aria-live="polite"></div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module">
+    import { get, post, logout } from "./guard.js";
+    const $ = id => document.getElementById(id);
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+    const parse = s => new Date(s.replace(" ", "T"));
+    const ago = stamp => {
+      const d = parse(stamp), m = Math.floor((Date.now() - d) / 60000);
+      if (m < 1) return "just now";
+      if (m < 60) return m + " min ago";
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + " hour" + (h > 1 ? "s" : "") + " ago";
+      const days = Math.floor(h / 24);
+      return days < 7 ? days + " day" + (days > 1 ? "s" : "") + " ago" : d.toLocaleDateString();
+    };
+    const PALETTE = ["#8c1426", "#b7791f", "#1f7a6d", "#2f6fb0", "#6b4fa0", "#b0482f"];
+    const colorOf = name => PALETTE[[...name].reduce((s, c) => s + c.charCodeAt(0), 0) % PALETTE.length];
+    let toastTimer;
+    function toast(text, bad = false) {
+      const t = $("toast"); t.textContent = text; t.className = "toast show" + (bad ? " bad" : "");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", 3200);
+    }
+    $("logoutBtn").addEventListener("click", logout);
+
+    // A small Yes / No window in the same style as the Log out window
+    function ask(title, message, yes) {
+      return new Promise(resolve => {
+        let done = false; const d = el("dialog", "cb");
+        const finish = v => { if (done) return; done = true; try { d.close(); } catch (e) {} d.remove(); resolve(v); };
+        const row = el("div", "actions"), no = el("button", "ghost", "No"), ok = el("button", null, yes);
+        no.type = ok.type = "button"; no.onclick = () => finish(false); ok.onclick = () => finish(true);
+        row.append(no, ok); d.append(el("h2", null, title), el("p", null, message), row);
+        d.addEventListener("cancel", e => { e.preventDefault(); finish(false); }); d.addEventListener("close", () => finish(false));
+        document.body.appendChild(d); d.showModal(); no.focus();
+      });
+    }
+
+    // Web links in a message become clickable (http and https only)
+    function linkify(text) {
+      const frag = document.createDocumentFragment();
+      text.split(/(https?:\/\/[^\s<]+)/g).forEach((part, i) => {
+        if (i % 2 === 0) { if (part) frag.appendChild(document.createTextNode(part)); return; }
+        const url = part.replace(/[.,;:!?)]+$/, ""), tail = part.slice(url.length);
+        try {
+          const u = new URL(url);
+          if (!/^https?:$/.test(u.protocol)) throw 0;
+          const a = el("a", null, url); a.href = u.href; a.target = "_blank"; a.rel = "noopener noreferrer"; frag.appendChild(a);
+        } catch (e) { frag.appendChild(document.createTextNode(url)); }
+        if (tail) frag.appendChild(document.createTextNode(tail));
+      });
+      return frag;
+    }
+
+    let user;
+    try { ({ user } = await get("me")); } catch (e) {}
+    if (!user || !["teacher", "student"].includes(user.role)) { location.href = "login.html"; throw new Error("not signed in"); }
+    const isTeacher = user.role === "teacher";
+    $("av").textContent = initials(user.name);
+    $("home").href = isTeacher ? "teacher.html" : "student.html";
+    $("lead").textContent = isTeacher ? "Messages you have sent to your classes." : "Messages from your teachers.";
+
+    let ITEMS = [], SEEN = null;
+    const F = { q: "", cls: "", unread: false };
+    const isNewItem = a => !isTeacher && (SEEN === null || a.created_at > SEEN);
+    const dayGroup = s => {
+      const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+      const diff = Math.round((day(new Date()) - day(parse(s))) / 86400000);
+      return diff <= 0 ? "Today" : diff === 1 ? "Yesterday" : diff < 7 ? "This week" : "Earlier";
+    };
+
+    function stats() {
+      const week = ITEMS.filter(a => Date.now() - parse(a.created_at) < 7 * 86400000).length;
+      const cards = isTeacher
+        ? [["Posted", ITEMS.length], ["This week", week], ["Classes", new Set(ITEMS.map(a => a.class_name)).size]]
+        : [["New", ITEMS.filter(isNewItem).length], ["This week", week], ["Total", ITEMS.length]];
+      const box = $("stats"); box.innerHTML = "";
+      cards.forEach(([l, n]) => { const s = el("div", "stat"); s.append(el("span", null, l), el("b", null, String(n))); box.appendChild(s); });
+    }
+
+    function filters() {
+      const box = $("filters"); box.innerHTML = "";
+      const names = [...new Set(ITEMS.map(a => a.class_name))];
+      const add = (label, on, fn, color) => {
+        const b = el("button", "chip" + (on ? " on" : "")); b.type = "button"; b.setAttribute("aria-pressed", String(on));
+        if (color) { const d = el("i", "dot"); d.style.setProperty("--c", color); b.appendChild(d); }
+        b.append(label); b.addEventListener("click", fn); box.appendChild(b);
+      };
+      add("All", !F.cls && !F.unread, () => { F.cls = ""; F.unread = false; filters(); render(); });
+      if (!isTeacher) add("Unread", F.unread, () => { F.unread = !F.unread; F.cls = ""; filters(); render(); });
+      if (names.length > 1) names.forEach(n => add(n, F.cls === n, () => { F.cls = F.cls === n ? "" : n; F.unread = false; filters(); render(); }, colorOf(n)));
+    }
+
+    function render() {
+      const list = $("list"); list.innerHTML = "";
+      const q = F.q.trim().toLowerCase();
+      const items = ITEMS.filter(a => (!F.cls || a.class_name === F.cls) && (!F.unread || isNewItem(a)) &&
+        (!q || [a.title, a.body, a.teacher, a.class_name].some(t => t.toLowerCase().includes(q))));
+      if (!items.length) {
+        const none = el("div", "none");
+        none.innerHTML = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 1 1 12 0v5l1.5 2h-15L6 16z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>';
+        const filtered = ITEMS.length > 0;
+        none.append(el("b", null, filtered ? "Nothing matches" : isTeacher ? "No announcements yet" : "You're all caught up"),
+          document.createTextNode(filtered ? "Try a different search or filter." : isTeacher ? "Use the New announcement button to write your first one." : "When a teacher posts an announcement, it shows up here."));
+        list.appendChild(none); return;
+      }
+      let last = "", n = 0; const clamps = [];
+      items.forEach(a => {
+        const g = dayGroup(a.created_at);
+        if (g !== last) { list.appendChild(el("h3", "gh", g)); last = g; }
+        const isNew = isNewItem(a), card = el("article", "panel post" + (isNew ? " fresh" : "")), body = el("div", "pbody");
+        card.style.setProperty("--c", colorOf(a.class_name)); card.style.setProperty("--i", String(Math.min(n++, 10)));
+        const h = el("h2", null, a.title); if (isNew) h.appendChild(el("span", "newtag", "NEW"));
+        const meta = el("div", "meta"), chip = el("span", "cls"), dot = el("i", "dot"), when = el("span", null, a.teacher + " \u00B7 " + ago(a.created_at));
+        dot.style.setProperty("--c", colorOf(a.class_name)); chip.append(dot, a.class_name);
+        when.title = parse(a.created_at).toLocaleString(); meta.append(chip, when);
+        const p = el("p", "clamp"); p.appendChild(linkify(a.body));
+        body.append(h, meta, p); clamps.push([p, body]);
+        if (isTeacher) {
+          const del = el("button", "ghost small", "Delete");
+          del.addEventListener("click", async () => {
+            if (!(await ask("Delete this announcement?", "Students will no longer see it.", "Yes, delete"))) return;
+            try { await post("ann_delete", { id: a.id }); toast("Announcement deleted."); load(); } catch (err) { toast(err.message, true); }
+          });
+          body.appendChild(del);
+        }
+        card.append(el("div", "avatar", initials(a.teacher)), body); list.appendChild(card);
+      });
+      requestAnimationFrame(() => clamps.forEach(([p, body]) => {       // only long messages get a "Read more" button
+        if (p.scrollHeight > p.clientHeight + 1) {
+          const t = el("button", "ghost small", "Read more");
+          t.addEventListener("click", () => { t.textContent = p.classList.toggle("clamp") ? "Read more" : "Show less"; });
+          body.insertBefore(t, body.children[3] || null);
+        }
+      }));
+    }
+
+    async function load() {
+      const list = $("list"); list.innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
+      try {
+        const r = await get("ann_list");
+        ITEMS = r.items; SEEN = r.seen;
+        stats(); filters(); render();
+      } catch (err) { list.replaceChildren(el("p", "none", err.message)); }
+    }
+
+    $("search").addEventListener("input", () => { F.q = $("search").value; render(); });
+
+    // ---------- Teacher: write an announcement ----------
+    if (isTeacher) {
+      const TEMPLATES = [
+        ["Meeting reminder", "Meeting reminder", "Please remember our meeting on [date] at [time]. Thank you."],
+        ["Exam reminder", "Exam reminder", "Our exam is on [date]. Please review the lessons and bring your pen and answer sheet."],
+        ["No classes", "No classes", "There will be no classes on [date]. Please watch for further announcements."],
+        ["Bring materials", "Please bring", "For our next class, please bring: [list]."]
+      ];
+      $("composeBtn").hidden = false;
+      const { classes } = await get("classes");
+      const picked = new Set();
+      const postTo = $("postTo");
+      if (!classes.length) postTo.appendChild(el("span", "note", "Create a class on the grades page first."));
+      classes.forEach(c => {
+        const b = el("button", "chip"); b.type = "button"; b.setAttribute("aria-pressed", "false");
+        const d = el("i", "dot"); d.style.setProperty("--c", colorOf(c.name)); b.append(d, `${c.name} - ${c.subject}`);
+        b.addEventListener("click", () => { const on = !picked.has(c.id); on ? picked.add(c.id) : picked.delete(c.id); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+        b.dataset.id = c.id; postTo.appendChild(b);
+      });
+      $("allClasses").addEventListener("click", () => {
+        const all = picked.size === classes.length;
+        [...postTo.querySelectorAll("button")].forEach(b => { b.classList.toggle("on", !all); b.setAttribute("aria-pressed", String(!all)); });
+        picked.clear(); if (!all) classes.forEach(c => picked.add(c.id));
+      });
+      TEMPLATES.forEach(([label, title, text]) => {
+        const b = el("button", "chip", label); b.type = "button";
+        b.addEventListener("click", () => { $("title").value = title; $("body").value = text; $("count").textContent = text.length; $("body").focus(); });
+        $("tpl").appendChild(b);
+      });
+      $("body").addEventListener("input", () => { $("count").textContent = $("body").value.length; });
+      const open = on => { $("composer").hidden = !on; $("composeBtn").hidden = on; if (on) { $("title").focus(); $("composer").scrollIntoView({ behavior: "smooth", block: "start" }); } };
+      $("composeBtn").addEventListener("click", () => open(true));
+      $("cancelPost").addEventListener("click", () => open(false));
+      $("form").addEventListener("submit", async e => {
+        e.preventDefault();
+        if (!picked.size) return toast("Choose at least one class to post to.", true);
+        const btn = e.submitter; if (btn) btn.disabled = true;
+        let sent = 0;
+        try {
+          for (const id of picked) { await post("ann_post", { class_id: Number(id), title: $("title").value.trim(), body: $("body").value.trim() }); sent++; }
+          $("form").reset(); $("count").textContent = "0"; picked.clear();
+          postTo.querySelectorAll("button").forEach(b => { b.classList.remove("on"); b.setAttribute("aria-pressed", "false"); });
+          open(false); toast(`Posted to ${sent} class${sent > 1 ? "es" : ""}.`);
+        } catch (err) { toast(err.message, true); }
+        if (btn) btn.disabled = false;
+        load();
+      });
+    }
+    load();
+  </script>
+  <script type="module" src="badge.js"></script>
+  <script src="logout-confirm.js"></script>
+  <script type="module" src="nav.js"></script>
+</body>
+</html>

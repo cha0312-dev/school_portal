@@ -1,0 +1,60 @@
+:root { --bg:#f4efe7; --dark:#d8d0c2; --light:#ffffff; --ink:#1f2630; --muted:#555852; --navy:#7a1020; --gold:#e0b12a; --bad:#b3261e; --good:#1a7f37; }
+* { box-sizing: border-box; }
+body { font-size:17px; line-height:1.55; margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+       font-family:"Atkinson Hyperlegible","Segoe UI",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+
+.container { display:grid; grid-template-columns:1fr 1fr; width:min(920px,100%); min-height:580px; overflow:hidden;
+             border-radius:22px; background:var(--bg); box-shadow:16px 16px 36px var(--dark), -16px -16px 36px var(--light); }
+
+.form { padding:40px 48px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+h1 { margin:0 0 8px; font-size:1.85rem; line-height:1.2; }
+.sub { margin:0 0 20px; font-size:1rem; color:var(--muted); }
+
+input, select { width:100%; padding:14px 18px; margin-bottom:14px; font:inherit; font-size:1rem; color:var(--ink);
+                background:var(--bg); border:0; border-radius:10px; outline:none;
+                box-shadow:inset 4px 4px 8px var(--dark), inset -4px -4px 8px var(--light); }
+input:focus-visible, select:focus-visible { box-shadow:inset 4px 4px 8px var(--dark), inset -4px -4px 8px var(--light), 0 0 0 3px #f0b429; }
+input::placeholder { color:#6b6e67; }
+
+.btn, .ghost { display:inline-block; padding:14px 40px; font:inherit; font-size:1rem; font-weight:700; letter-spacing:.02em; text-decoration:none; border:0; border-radius:999px; cursor:pointer; transition:transform .15s; }
+.btn { margin-top:8px; color:#fff; background:var(--navy); box-shadow:0 8px 16px rgba(122,16,32,.32); }
+.ghost { color:var(--ink); background:var(--bg); box-shadow:6px 6px 12px var(--dark), -6px -6px 12px var(--light); }
+.btn:active, .ghost:active { transform:scale(.97); }
+.btn:focus-visible, .ghost:focus-visible, a:focus-visible { outline:3px solid #f0b429; outline-offset:3px; }
+
+a { color:var(--ink); font-size:.98rem; }
+.forgot { margin:2px 0 10px; padding-bottom:2px; text-decoration:none; border-bottom:1px solid #c9c8bd; }
+.swap { display:none; margin-top:16px; }
+.msg { min-height:20px; margin:12px 0 0; font-size:.98rem; color:var(--bad); }
+.msg.ok { color:var(--good); }
+
+.overlay { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;
+           background:var(--bg); box-shadow:0 0 22px rgba(0,0,0,.09); }
+.overlay::before, .overlay::after { content:""; position:absolute; width:280px; height:280px; border-radius:50%;
+           box-shadow:inset 10px 10px 22px var(--dark), inset -10px -10px 22px var(--light); }
+.overlay::before { top:-120px; right:-70px; }
+.overlay::after { bottom:-130px; left:-80px; }
+.ov { position:relative; z-index:1; padding:0 44px; text-align:center; }
+.ov p { margin:0 0 26px; font-size:1.05rem; line-height:1.6; }
+
+@media (max-width:720px) {
+  .container { grid-template-columns:1fr; min-height:0; }
+  .overlay { display:none; }
+  .form { padding:40px 24px; }
+  .swap { display:inline-block; }
+}
+@media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+
+/* ---------- Side panel corners (the slide itself is in auth-transition.js) ---------- */
+/* Keep the side panel's rounded outer corners while it slides */
+.overlay { border-radius: 0 22px 22px 0; }
+.overlay.left { border-radius: 22px 0 0 22px; }
+
+
+/* ---------- University of Mindanao theme: maroon and gold ---------- */
+.form h1 { color: var(--navy); }
+.forgot { border-bottom-color: var(--gold); }
+.overlay { background: linear-gradient(145deg, #8c1426, #5a0a16); box-shadow: 0 0 22px rgba(90, 10, 22, .28); }
+.overlay::before, .overlay::after { box-shadow: inset 10px 10px 22px rgba(0,0,0,.3), inset -10px -10px 22px rgba(255,255,255,.08); }
+.ov, .ov h1, .ov p { color: #fff; }
+.ov .ghost { color: #4a0812; background: var(--gold); box-shadow: 0 8px 16px rgba(0,0,0,.3); }

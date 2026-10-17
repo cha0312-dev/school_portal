@@ -1,0 +1,33 @@
+USE school_portal;
+
+CREATE TABLE IF NOT EXISTS classes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  teacher_id INT NOT NULL,
+  name VARCHAR(80) NOT NULL,
+  subject VARCHAR(80) NOT NULL,
+  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS class_students (
+  class_id INT NOT NULL,
+  student_id INT NOT NULL,
+  PRIMARY KEY (class_id, student_id),
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS locks (
+  class_id INT NOT NULL,
+  quarter TINYINT NOT NULL,
+  locked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (class_id, quarter),
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  action VARCHAR(40) NOT NULL,
+  info VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
